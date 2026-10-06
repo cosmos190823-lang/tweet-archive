@@ -92,6 +92,14 @@
         #importMsg { font-size: 13px; color: #8b98a5; margin-top: 10px; line-height: 1.5; word-break: keep-all; }
         .small-note { font-size: 12px; color: #8b98a5; margin: 6px 0; line-height: 1.5; }
         textarea.paste-box { width: 100%; height: 70px; background: #000; color: #fff; border: 1px solid #333; border-radius: 8px; padding: 8px; box-sizing: border-box; font-size: 12px; }
+        /* 추가: 영상/카테고리 관리/타래 팝업 */
+        .tweet-video { object-fit: contain !important; background: #000; }
+        .chip-btn { background: transparent; border: none; color: #8b98a5; cursor: pointer; font-size: 13px; padding: 0 2px; }
+        .chip-btn:hover { color: #fff; }
+        .cat-count { color: #8b98a5; font-size: 12px; }
+        #threadModal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.85); z-index: 900; align-items: flex-start; justify-content: center; padding: 16px; overflow-y: auto; box-sizing: border-box; }
+        .thread-modal-box { background: #16181c; border: 1px solid #38444d; border-radius: 12px; padding: 16px; max-width: 750px; width: 100%; box-sizing: border-box; }
+        .thread-modal-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 6px; }
     </style>
 </head>
 <body>
@@ -143,6 +151,7 @@
             <label><input type="checkbox" id="excludeRT" onchange="runSearch()"> 🔄 RT 제외</label>
             <label><input type="checkbox" id="excludeMention" onchange="runSearch()"> 💬 멘션 제외</label>
             <label><input type="checkbox" id="onlyMedia" onchange="runSearch()"> 📷 사진 첨부만</label>
+            <label><input type="checkbox" id="onlyThread" onchange="runSearch()"> 🧵 타래 트윗만</label>
         </div>
         <button class="btn" style="width:100%;" onclick="runSearch()">100% 문장 검색</button>
     </div>
@@ -169,7 +178,7 @@
             <input type="file" id="fileInput" multiple accept=".js,.json" onchange="importFiles(this.files); this.value='';">
         </div>
         <div id="importMsg"></div>
-        <p class="small-note">이미 저장된 트윗은 자동으로 건너뛰고 <b>새 트윗만</b> 클라우드에 추가해요. 같은 파일을 여러 번 올려도 안전해요. 올린 트윗은 로그인한 모든 기기에서 보여요.</p>
+        <p class="small-note">이미 저장된 트윗은 자동으로 건너뛰고 <b>새 트윗만</b> 클라우드에 추가해요. 같은 파일을 여러 번 올려도 안전해요. 올린 트윗은 로그인한 모든 기기에서 보여요.<br>🎞️ 영상·움짤이 재생되지 않는 기존 트윗은, <b>같은 tweets.js를 한 번 더 올리면</b> 재생 정보가 자동으로 보충돼요. (트윗이 중복되지는 않아요)</p>
         <hr style="border-color:#333; margin:15px 0;">
 
         <h4>☁️ 동기화</h4>
@@ -193,6 +202,20 @@
         <button class="btn" id="legacyAutoBtn" style="display:none; margin-bottom:8px;" onclick="importLegacyAuto()">이 브라우저의 예전 기록을 클라우드로 옮기기</button>
         <textarea id="legacyPaste" class="paste-box" placeholder="(선택) 가이드 9단계에서 복사한 내용을 여기에 붙여넣기"></textarea>
         <button class="btn btn-secondary" style="margin-top:6px;" onclick="importLegacyPaste()">붙여넣은 기록 옮기기</button>
+    </div>
+
+    <div id="viewBar" class="section-box" style="display:none; padding:12px;">
+        <div id="listSearchRow" style="display:none; gap:8px;">
+            <input type="text" id="listSearchInput" placeholder="이 탭 안에서 키워드 검색" style="margin:0;" onkeydown="if(event.key==='Enter' && !event.isComposing) refreshView();">
+            <button class="btn" style="width:80px;" onclick="refreshView()">검색</button>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px; margin-top:8px;">
+            <span style="font-size:13px; color:#ccc;">정렬</span>
+            <select id="sortSelect" style="margin:0; width:auto;" onchange="changeSort()">
+                <option value="new">⬇️ 최신순</option>
+                <option value="old">⬆️ 오래된순</option>
+            </select>
+        </div>
     </div>
 
     <div class="batch-bar" id="batchBar" style="display:none;">
@@ -235,6 +258,17 @@
     </div>
 
 
+    <div id="threadModal" onclick="if(event.target===this) closeThreadModal();">
+        <div class="thread-modal-box">
+            <div class="thread-modal-head">
+                <b id="threadModalTitle"></b>
+                <button class="btn btn-secondary" onclick="closeThreadModal()">✕ 닫기</button>
+            </div>
+            <div class="small-note">노란 테두리가 방금 누른 트윗이에요. (오래된 트윗 → 최신 트윗 순서)</div>
+            <div id="threadModalBody"></div>
+        </div>
+    </div>
+
     </div><!-- /appRoot -->
 
 <script>
@@ -261,6 +295,10 @@
     let selectedTweetIds = new Set();
     let currentTab = 'search';
     let currentHighlightKw = '';
+    let tweetVideoMap = {};         // { 트윗ID: 영상(mp4) 주소 }
+    let replyChildMap = new Map();  // { 부모트윗ID: [답글 트윗들] }
+    let sortOrder = 'new';          // 'new' 최신순 / 'old' 오래된순
+    try { sortOrder = localStorage.getItem('my_tweet_sort') === 'old' ? 'old' : 'new'; } catch (e) {}
 
     let currentUser = null;
     let idb = null;                 // 이 기기에 트윗 복사본을 두는 저장소
@@ -358,7 +396,7 @@
     function afterLogout() {
         currentUser = null; idb = null; loadedMaxSeq = 0;
         rawById = new Map(); allTweets = []; tweetMapById = new Map();
-        tweetCategoryMap = {}; bookmarkSet = new Set(); deletedSet = new Set();
+        tweetCategoryMap = {}; bookmarkSet = new Set(); deletedSet = new Set(); tweetVideoMap = {}; replyChildMap = new Map();
         selectedTweetIds.clear(); currentFilteredList = [];
         $('tweetResults').innerHTML = '';
         showGate('login', '');
@@ -385,6 +423,7 @@
 
     function initAppUI() {
         $('userLabel').innerText = '👤 ' + (currentUser.email || '');
+        $('sortSelect').value = sortOrder;
         renderCategoryChips(); updateCategorySelects(); updateBadge(); showLegacyPanel();
         bindDropZone();
         if (allTweets.length) {
@@ -401,6 +440,9 @@
         categories = (st.categories && st.categories.length) ? st.categories.slice() : DEFAULT_CATEGORIES.slice();
         if (!categories.includes('미분류')) categories.unshift('미분류');
         tweetCategoryMap = st.cat;
+        tweetVideoMap = st.vid || {};
+        // 분류 목록에는 없는데 트윗에 붙어 있는 분류명이 있으면 목록에 되살림 (저장이 중간에 끊긴 경우 대비)
+        Object.values(tweetCategoryMap).forEach(c => { if (c && !categories.includes(c)) categories.push(c); });
         bookmarkSet = new Set(Object.keys(st.bm));
         deletedSet = new Set(Object.keys(st.del));
     }
@@ -495,6 +537,11 @@
     function rebuildAll() {
         allTweets = Array.from(rawById.values()).filter(t => !deletedSet.has(t.id_str)).sort(newestFirst);
         tweetMapById = new Map(allTweets.map(t => [t.id_str, t]));
+        replyChildMap = new Map();
+        allTweets.forEach(t => {
+            const p = t.in_reply_to_status_id_str;
+            if (p) { if (!replyChildMap.has(p)) replyChildMap.set(p, []); replyChildMap.get(p).push(t); }
+        });
     }
 
     async function syncNow() {
@@ -533,6 +580,19 @@
 
     /* ---------- 새 트윗 파일 올리기 ---------- */
     function slimMedia(m) { return { url: m.url, id_str: m.id_str, media_url_https: m.media_url_https, type: m.type }; }
+    // 트윗 안의 영상/움짤에서 재생용 mp4 주소(화질 가장 높은 것)를 찾음
+    function pickVideoUrl(t) {
+        const lists = [].concat((t.extended_entities || {}).media || [], (t.entities || {}).media || []);
+        for (const m of lists) {
+            const vs = m && m.video_info && m.video_info.variants;
+            if (Array.isArray(vs)) {
+                const mp4 = vs.filter(v => v && v.url && String(v.content_type || '').indexOf('mp4') >= 0)
+                              .sort((a, b) => (parseInt(b.bitrate, 10) || 0) - (parseInt(a.bitrate, 10) || 0));
+                if (mp4.length) return mp4[0].url;
+            }
+        }
+        return null;
+    }
     // 용량을 아끼려고 화면에 필요한 정보만 남김
     function slimTweet(t, account) {
         const s = { id_str: String(t.id_str), full_text: t.full_text || t.text || '', created_at: t.created_at || '', account: account };
@@ -588,6 +648,7 @@
             rebuildAll();
 
             const found = new Map();
+            const vidFound = new Map();
             const failed = [];
             let seenTotal = 0;
             for (let i = 0; i < files.length; i++) {
@@ -604,15 +665,26 @@
                         if (!t || !t.id_str) continue;
                         seenTotal++;
                         const id = String(t.id_str);
+                        if (!deletedSet.has(id) && !tweetVideoMap[id] && !vidFound.has(id)) { const vu = pickVideoUrl(t); if (vu) vidFound.set(id, vu); }
                         if (rawById.has(id) || deletedSet.has(id) || found.has(id)) continue;
                         found.set(id, slimTweet(t, account));
                     }
                 } catch (err) { console.error(err); failed.push(file.name); }
             }
 
+            let vidAdded = 0;
+            if (vidFound.size) {
+                msg(`영상/움짤 재생 정보 ${vidFound.size}개 저장 중…`);
+                const vops = [];
+                vidFound.forEach((u, id) => vops.push({ k: 'vid', id, v: u }));
+                await cloud.setState(vops);
+                vops.forEach(o => { tweetVideoMap[o.id] = o.v; });
+                vidAdded = vops.length;
+            }
+            const vidNote = vidAdded ? `🎞️ 영상/움짤 재생 정보 ${vidAdded}개를 보충했어요. ` : '';
             const list = Array.from(found.values());
             if (!list.length) {
-                msg(`새로 추가할 트윗이 없어요. (파일 속 트윗 ${seenTotal}개는 이미 모두 저장돼 있어요)` + (failed.length ? ` / 읽지 못한 파일: ${failed.join(', ')}` : ''));
+                msg(vidNote + `새로 추가할 트윗이 없어요. (파일 속 트윗 ${seenTotal}개는 이미 모두 저장돼 있어요)` + (failed.length ? ` / 읽지 못한 파일: ${failed.join(', ')}` : ''));
                 return;
             }
 
@@ -627,7 +699,7 @@
                 loadedMaxSeq = Math.max(loadedMaxSeq, seq);
             }
             rebuildAll();
-            const done = `✅ 새 트윗 ${list.length}개를 추가했어요! (전체 ${allTweets.length}개)` + (failed.length ? ` / 읽지 못한 파일: ${failed.join(', ')}` : '');
+            const done = vidNote + `✅ 새 트윗 ${list.length}개를 추가했어요! (전체 ${allTweets.length}개)` + (failed.length ? ` / 읽지 못한 파일: ${failed.join(', ')}` : '');
             msg(done);
             alert(done);
             switchTab('search');
@@ -686,6 +758,7 @@
 
     /* ---------- 화면 동작 (탭 / 검색 / 목록) ---------- */
     function switchTab(tabName) {
+        const prevTab = currentTab;
         currentTab = tabName;
         currentPage = 1;
         currentHighlightKw = '';
@@ -696,21 +769,52 @@
             btn.classList.toggle('active', ['search', 'random', 'rt', 'mention', 'thread', 'bookmark', 'category', 'data'][idx] === tabName);
         });
 
+        // 정렬/키워드 검색 칸: 통합 검색에는 정렬만, RT·멘션·타래·북마크·카테고리에는 둘 다
+        const isList = ['rt', 'mention', 'thread', 'bookmark', 'category'].includes(tabName);
+        $('viewBar').style.display = (isList || tabName === 'search') ? 'block' : 'none';
+        $('listSearchRow').style.display = isList ? 'flex' : 'none';
+        if (tabName !== prevTab) $('listSearchInput').value = '';
+
         selectedTweetIds.clear();
         updateBatchBar();
 
         if (tabName === 'data') {
             togglePagination(false);
+            renderCategoryChips();
             $('tweetResults').innerHTML = '';
-            $('statusInfo').innerText = `현재 저장된 트윗: ${allTweets.length}개`;
+            $('statusInfo').innerText = `현재 저장된 트윗: ${allTweets.length}개 · 재생 가능한 영상/움짤: ${Object.keys(tweetVideoMap).length}개`;
+            return;
         }
-        else if (tabName === 'random') generateRandomTweets();
-        else if (tabName === 'rt') setFilteredList(allTweets.filter(t => isRT(t)));
-        else if (tabName === 'mention') setFilteredList(allTweets.filter(t => isExternalMention(t)));
-        else if (tabName === 'thread') renderThreads();
-        else if (tabName === 'bookmark') setFilteredList(allTweets.filter(t => bookmarkSet.has(t.id_str)));
-        else if (tabName === 'category') filterByCategory();
-        else if (tabName === 'search') runSearch();
+        refreshView();
+    }
+
+    // 현재 탭의 목록을 (검색어·정렬 설정에 맞게) 다시 그림
+    function refreshView() {
+        const tab = currentTab;
+        if (tab === 'data') return;
+        if (tab === 'random') { generateRandomTweets(); return; }
+        if (tab === 'search') { runSearch(); return; }
+
+        const kw = $('listSearchInput').value.trim();
+        currentHighlightKw = kw;
+        if (tab === 'thread') { renderThreads(); return; }
+
+        let list = allTweets;
+        if (tab === 'rt') list = list.filter(t => isRT(t));
+        else if (tab === 'mention') list = list.filter(t => isExternalMention(t));
+        else if (tab === 'bookmark') list = list.filter(t => bookmarkSet.has(t.id_str));
+        else if (tab === 'category') {
+            const sel = $('catSelectFilter').value;
+            list = list.filter(t => (tweetCategoryMap[t.id_str] || '미분류') === sel);
+        }
+        if (kw) list = list.filter(t => matchKw(t, kw));
+        setFilteredList(list);
+    }
+
+    function changeSort() {
+        sortOrder = $('sortSelect').value === 'old' ? 'old' : 'new';
+        try { localStorage.setItem('my_tweet_sort', sortOrder); } catch (e) {}
+        refreshView();
     }
 
     function getMediaList(t) {
@@ -743,7 +847,7 @@
             [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
         }
 
-        setFilteredList(shuffled.slice(0, 100));
+        setFilteredList(shuffled.slice(0, 100), true);
     }
 
     function isRT(t) { return t.full_text && (t.full_text.startsWith('RT @') || t.retweeted_status); }
@@ -755,9 +859,67 @@
 
     let threadGroupsCache = [];
     let threadShown = 0;
+    let threadKw = '';
     const THREAD_BATCH = 30;
 
+    function matchKw(t, kw) { return !!t.full_text && t.full_text.includes(kw); }
+
+    /* ---------- 타래(연결된 트윗) 찾기 도우미 ---------- */
+    function parentOf(t) {
+        const p = t.in_reply_to_status_id_str;
+        return p ? (tweetMapById.get(p) || null) : null;
+    }
+    function childrenOf(id) {
+        return (replyChildMap.get(id) || []).filter(c => tweetMapById.has(c.id_str));
+    }
+    function hasThread(t) {
+        return !!parentOf(t) || childrenOf(t.id_str).length > 0;
+    }
+    // 이 트윗과 연결된 모든 트윗 (맨 위 원글부터 아래로, 오래된 것 → 최신 순)
+    function getThreadOf(t) {
+        let root = t;
+        const guard = new Set([t.id_str]);
+        let p;
+        while ((p = parentOf(root)) && !guard.has(p.id_str)) { root = p; guard.add(p.id_str); }
+        const out = [], seen = new Set(), stack = [root];
+        while (stack.length) {
+            const c = stack.pop();
+            if (seen.has(c.id_str)) continue;
+            seen.add(c.id_str); out.push(c);
+            childrenOf(c.id_str).forEach(k => stack.push(k));
+        }
+        return out.sort((a, b) => newestFirst(b, a));
+    }
+
+    function openThreadModal(id, e) {
+        if (e) e.stopPropagation();
+        const t = tweetMapById.get(id);
+        if (!t) return;
+        const list = getThreadOf(t);
+        $('threadModalTitle').innerText = `🧵 연결된 트윗 ${list.length}개`;
+        const body = $('threadModalBody');
+        body.innerHTML = '';
+        list.forEach(x => {
+            const c = createTweetCard(x, currentHighlightKw, { readonly: true });
+            if (x.id_str === id) c.style.borderColor = '#ffd700';
+            body.appendChild(c);
+        });
+        $('threadModal').style.display = 'flex';
+        $('threadModal').scrollTop = 0;
+        document.body.style.overflow = 'hidden';
+    }
+    function closeThreadModal() {
+        $('threadModal').style.display = 'none';
+        $('threadModalBody').innerHTML = '';
+        document.body.style.overflow = '';
+    }
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeThreadModal(); });
+
+    /* ---------- 타래 탭 ---------- */
     function renderThreads() {
+        const kw = $('listSearchInput').value.trim();
+        threadKw = kw; currentHighlightKw = kw;
+
         const threadGroups = [];
         const visited = new Set();
 
@@ -799,14 +961,24 @@
             if (chain.length >= 2) threadGroups.push(chain);
         });
 
-        $('statusInfo').innerText = `연결된 타래: 총 ${threadGroups.length}개 그룹`;
+        // 타래 묶음의 순서: 최신순 = 가장 최근 글 기준 / 오래된순 = 타래 시작 글 기준
+        // (한 타래 안의 글은 읽기 편하게 항상 오래된 글 → 최신 글 순서)
+        const key = g => sortOrder === 'old' ? g[0] : g[g.length - 1];
+        threadGroups.sort((a, b) => sortOrder === 'old' ? newestFirst(key(b), key(a)) : newestFirst(key(a), key(b)));
+
+        let groups = threadGroups;
+        if (kw) groups = threadGroups.filter(g => g.some(t => matchKw(t, kw)));
+
+        $('statusInfo').innerText = kw
+            ? `연결된 타래 ${threadGroups.length}개 중 "${kw}" 포함: ${groups.length}개 그룹`
+            : `연결된 타래: 총 ${threadGroups.length}개 그룹`;
         togglePagination(false);
 
         const container = $('tweetResults');
         container.innerHTML = '';
-        threadGroupsCache = threadGroups;
+        threadGroupsCache = groups;
         threadShown = 0;
-        if (threadGroups.length === 0) {
+        if (groups.length === 0) {
             container.innerHTML = '<div style="color:#8b98a5; padding:20px;">연결된 타래가 없습니다.</div>';
             return;
         }
@@ -819,10 +991,12 @@
         if (old) old.remove();
         const next = threadGroupsCache.slice(threadShown, threadShown + THREAD_BATCH);
         next.forEach((group, i) => {
+            const first = group[0], last = group[group.length - 1];
+            const d1 = fmtDate(first.created_at), d2 = fmtDate(last.created_at);
             const groupDiv = document.createElement('div');
             groupDiv.className = 'thread-group';
-            groupDiv.innerHTML = `<div class="thread-title">🧵 타래 #${threadShown + i + 1} (${group.length}개 이어짐)</div>`;
-            group.forEach(t => groupDiv.appendChild(createTweetCard(t)));
+            groupDiv.innerHTML = `<div class="thread-title">🧵 타래 #${threadShown + i + 1} (${group.length}개 이어짐) · ${d1}${d1 !== d2 ? ' ~ ' + d2 : ''}</div>`;
+            group.forEach(t => groupDiv.appendChild(createTweetCard(t, threadKw, { noThreadBtn: true })));
             container.appendChild(groupDiv);
         });
         threadShown += next.length;
@@ -842,6 +1016,7 @@
         const exRT = $('excludeRT').checked;
         const exMention = $('excludeMention').checked;
         const onlyMedia = $('onlyMedia').checked;
+        const onlyThread = $('onlyThread').checked;
 
         currentHighlightKw = kw;
         let filtered = allTweets;
@@ -849,13 +1024,15 @@
         if (exRT) filtered = filtered.filter(t => !isRT(t));
         if (exMention) filtered = filtered.filter(t => !isExternalMention(t));
         if (onlyMedia) filtered = filtered.filter(t => hasMedia(t));
-        if (kw) filtered = filtered.filter(t => t.full_text && t.full_text.includes(kw));
+        if (onlyThread) filtered = filtered.filter(t => hasThread(t));
+        if (kw) filtered = filtered.filter(t => matchKw(t, kw));
 
         setFilteredList(filtered);
     }
 
-    function setFilteredList(list) {
-        currentFilteredList = list;
+    // list는 항상 최신순으로 들어옴 → "오래된순"이면 뒤집어서 보여줌 (랜덤은 keepOrder=true)
+    function setFilteredList(list, keepOrder) {
+        currentFilteredList = (!keepOrder && sortOrder === 'old') ? list.slice().reverse() : list;
         currentPage = 1;
         renderCurrentPage();
     }
@@ -945,19 +1122,56 @@
             renderCategoryChips(); updateCategorySelects();
         }
     }
+    function categoryCounts() {
+        const counts = {};
+        allTweets.forEach(t => { const c = tweetCategoryMap[t.id_str] || '미분류'; counts[c] = (counts[c] || 0) + 1; });
+        return counts;
+    }
     function renderCategoryChips() {
-        $('catChipList').innerHTML = categories.map(c => `<div class="cat-chip">${esc(c)}</div>`).join('');
+        const counts = categoryCounts();
+        $('catChipList').innerHTML = categories.map((c, i) => {
+            const tools = c === '미분류' ? '' :
+                `<button class="chip-btn" title="이름 바꾸기" onclick="renameCategory(${i})">✏️</button><button class="chip-btn" title="삭제" onclick="deleteCategory(${i})">🗑️</button>`;
+            return `<div class="cat-chip">${esc(c)} <span class="cat-count">${counts[c] || 0}</span>${tools}</div>`;
+        }).join('');
+    }
+    function renameCategory(i) {
+        const old = categories[i];
+        if (!old || old === '미분류') return;
+        const name = (prompt(`"${old}" 분류의 새 이름을 입력하세요`, old) || '').trim();
+        if (!name || name === old) return;
+        if (name === '미분류' || categories.includes(name)) { alert('이미 있는 이름이에요. 다른 이름을 써 주세요.'); return; }
+        const ops = [];
+        Object.keys(tweetCategoryMap).forEach(id => {
+            if (tweetCategoryMap[id] === old) { tweetCategoryMap[id] = name; ops.push({ k: 'cat', id, v: name }); }
+        });
+        categories[i] = name;
+        const snap = categories.slice();
+        cloudWrite(async () => { if (ops.length) await cloud.setState(ops); await cloud.setCategories(snap); });
+        renderCategoryChips(); updateCategorySelects();
+    }
+    function deleteCategory(i) {
+        const old = categories[i];
+        if (!old || old === '미분류') return;
+        const ids = Object.keys(tweetCategoryMap).filter(id => tweetCategoryMap[id] === old);
+        if (!confirm(`"${old}" 분류를 삭제할까요?\n이 분류의 트윗 ${ids.length}개는 '미분류'로 옮겨져요. (트윗은 지워지지 않아요)`)) return;
+        const ops = ids.map(id => { delete tweetCategoryMap[id]; return { k: 'cat', id, v: null }; });
+        categories.splice(i, 1);
+        const snap = categories.slice();
+        cloudWrite(async () => { if (ops.length) await cloud.setState(ops); await cloud.setCategories(snap); });
+        renderCategoryChips(); updateCategorySelects();
     }
     function updateCategorySelects() {
+        const prev = { f: $('catSelectFilter').value, b: $('batchCatSelect').value, r: $('randomCatSelect').value };
         const options = categories.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
         $('catSelectFilter').innerHTML = options;
         $('batchCatSelect').innerHTML = options;
         $('randomCatSelect').innerHTML = `<option value="ALL">✨ 전체 카테고리에서 랜덤</option>` + options;
+        if (categories.includes(prev.f)) $('catSelectFilter').value = prev.f;
+        if (categories.includes(prev.b)) $('batchCatSelect').value = prev.b;
+        if (prev.r === 'ALL' || categories.includes(prev.r)) $('randomCatSelect').value = prev.r;
     }
-    function filterByCategory() {
-        const selected = $('catSelectFilter').value;
-        setFilteredList(allTweets.filter(t => (tweetCategoryMap[t.id_str] || '미분류') === selected));
-    }
+    function filterByCategory() { refreshView(); }
 
     function toggleBookmark(id, e) {
         if (e) e.stopPropagation();
@@ -1150,13 +1364,14 @@
                         if (json && json.tweet) {
                             const tw = json.tweet;
                             const photos = ((tw.media && tw.media.photos) || []).map(x => x.url).filter(u => safeHttpUrl(u, '')).slice(0, 4);
+                            const videos = ((tw.media && tw.media.videos) || []).map(v => ({ url: v.url, thumb: v.thumbnail_url || '', gif: v.type === 'gif' })).filter(v => safeHttpUrl(v.url, '')).slice(0, 2);
                             const data = {
                                 name: (tw.author && tw.author.name) || '',
                                 handle: (tw.author && tw.author.screen_name) || '',
                                 text: tw.text || '',
                                 date: tw.created_at || '',
                                 url: tw.url || '',
-                                photos
+                                photos, videos
                             };
                             quoteCache[id] = data;
                             saveQuoteCacheSoon();
@@ -1185,7 +1400,7 @@
             ? `<div class="quote-photos">${d.photos.map(u => `<img src="${esc(u)}" loading="lazy" onerror="this.style.display='none';">`).join('')}</div>`
             : '';
         return `<div class="quote-embed-author">💬 인용한 원트 · <a href="${esc(link)}" target="_blank" rel="noopener" onclick="event.stopPropagation();">${who || '원본 보기'}</a></div>
-                <div class="quote-text">${esc(d.text)}</div>${photos}`;
+                <div class="quote-text">${esc(d.text)}</div>${photos}${videoHtml(d.videos, link)}`;
     }
 
     function quoteFailHtml(q, status) {
@@ -1217,14 +1432,14 @@
         }
         // 2) 이미 저장해 둔 게 있으면 바로 표시
         if (quoteCache[q.id]) {
-            box.innerHTML = quoteBoxHtml(quoteCache[q.id], q);
+            box.innerHTML = quoteBoxHtml(quoteCache[q.id], q); bindVideos(box);
             return;
         }
         // 3) 없으면 화면에 보일 때 인터넷에서 가져오기
         box._load = function () {
             fetchQuoteData(q.id, q.user).then(r => {
                 if (r.status === 'ok') {
-                    box.innerHTML = quoteBoxHtml(r.data, q);
+                    box.innerHTML = quoteBoxHtml(r.data, q); bindVideos(box);
                 } else {
                     box.innerHTML = quoteFailHtml(q, r.status);
                     const btn = box.querySelector('.quote-retry');
@@ -1239,7 +1454,41 @@
         quoteObserver.observe(box);
     }
 
-    function createTweetCard(t, highlight = '') {
+    /* ---------- 영상 / 움짤 재생 ---------- */
+    // 움짤(data-gif)은 화면에 보일 때만 자동 재생, 벗어나면 멈춤 (많아도 버벅이지 않게)
+    const videoObserver = new IntersectionObserver(entries => {
+        entries.forEach(en => {
+            const v = en.target;
+            if (en.isIntersecting) { const p = v.play(); if (p && p.catch) p.catch(() => {}); }
+            else v.pause();
+        });
+    }, { threshold: 0.4 });
+    function bindVideos(root) {
+        root.querySelectorAll('video[data-gif]').forEach(v => videoObserver.observe(v));
+    }
+    function videoFailed(v) {
+        if (v.dataset.failed) return;
+        v.dataset.failed = '1';
+        const note = document.createElement('div');
+        note.className = 'small-note';
+        const link = safeHttpUrl(v.dataset.tw, '');
+        note.innerHTML = '⚠️ 영상을 불러오지 못했어요 (원본이 삭제됐거나 트위터가 막았을 수 있어요). ' +
+            (link ? `<a href="${esc(link)}" target="_blank" rel="noopener" onclick="event.stopPropagation();" style="color:#1d9bf0;">트위터에서 보기</a>` : '');
+        v.replaceWith(note);
+    }
+    function videoHtml(videos, link) {
+        if (!videos || !videos.length) return '';
+        return '<div class="quote-photos" style="grid-template-columns:1fr;">' + videos.map(v => {
+            const u = safeHttpUrl(v.url, '');
+            if (!u) return '';
+            const poster = safeHttpUrl(v.thumb, '');
+            return `<video class="tweet-video" src="${esc(u)}" ${poster ? `poster="${esc(poster)}"` : ''} ${v.gif ? 'data-gif="1" muted loop' : 'controls'} playsinline preload="none" referrerpolicy="no-referrer" data-tw="${esc(link || '')}" style="width:100%; max-height:260px; border-radius:6px;" onerror="videoFailed(this)"></video>`;
+        }).join('') + '</div>';
+    }
+
+    // opts.readonly: 타래 팝업용(버튼 없는 읽기 전용) / opts.noThreadBtn: 타래 탭용(이미 묶여 있으니 버튼 숨김)
+    function createTweetCard(t, highlight = '', opts = {}) {
+        const readonly = !!opts.readonly;
         const isBookmarked = bookmarkSet.has(t.id_str);
         const isSelected = selectedTweetIds.has(t.id_str);
         const currentCat = tweetCategoryMap[t.id_str] || '미분류';
@@ -1252,44 +1501,67 @@
 
         let twitterUrl = `https://twitter.com/i/web/status/${t.id_str}`;
 
+        const vurl = safeHttpUrl(tweetVideoMap[t.id_str], '');
         const mediaList = getMediaList(t);
+        const hasVid = mediaList.some(m => m.type === 'video' || m.type === 'animated_gif');
         let mediaHtml = '';
+        let noVidSrc = false;
         if (mediaList.length > 0) {
             mediaHtml += '<div class="tweet-media-container">';
             mediaList.forEach(m => {
                 const imgSrc = m.media_url_https || m.media_url || `data/tweet_media/${t.id_str}-${m.id_str || '1'}.jpg`;
-                mediaHtml += `<img src="${imgSrc}" class="tweet-media-img" loading="lazy" onclick="event.stopPropagation(); window.open('${imgSrc}', '_blank');" onerror="this.style.display='none';">`;
+                const isVid = m.type === 'video' || m.type === 'animated_gif';
+                if (isVid && vurl) {
+                    const gif = m.type === 'animated_gif';
+                    mediaHtml += `<video class="tweet-media-img tweet-video" src="${esc(vurl)}" poster="${esc(imgSrc)}" ${gif ? 'data-gif="1" muted loop' : 'controls'} playsinline preload="none" referrerpolicy="no-referrer" data-tw="${esc(twitterUrl)}" onerror="videoFailed(this)"></video>`;
+                } else {
+                    if (isVid) noVidSrc = true;
+                    mediaHtml += `<img src="${imgSrc}" class="tweet-media-img" loading="lazy" onclick="event.stopPropagation(); window.open('${imgSrc}', '_blank');" onerror="this.style.display='none';">`;
+                }
             });
             mediaHtml += '</div>';
+            if (noVidSrc) mediaHtml += '<div class="small-note">🎞️ 영상/움짤 재생 정보가 아직 없어요. ⚙️ 설정/파일 탭에서 tweets.js를 다시 올리면 재생돼요.</div>';
         }
+
+        const showThreadBtn = !readonly && !opts.noThreadBtn && hasThread(t);
+        const threadBtn = showThreadBtn
+            ? `<button class="btn btn-secondary" style="padding:4px 8px; font-size:11px;" onclick="openThreadModal('${t.id_str}', event)">🧵 연결된 트윗 보기 (${getThreadOf(t).length})</button>`
+            : '';
 
         const card = document.createElement('div');
         card.className = `tweet-card ${isSelected ? 'selected' : ''}`;
 
-        card.onclick = function(e) {
-            if (['BUTTON', 'A', 'SELECT', 'INPUT', 'IMG'].includes(e.target.tagName)) return;
-            toggleCardSelection(t.id_str, card);
-        };
+        if (readonly) {
+            card.style.cursor = 'default';
+        } else {
+            card.onclick = function(e) {
+                if (['BUTTON', 'A', 'SELECT', 'INPUT', 'IMG', 'VIDEO'].includes(e.target.tagName)) return;
+                toggleCardSelection(t.id_str, card);
+            };
+        }
 
         card.innerHTML = `
             <div class="tweet-header">
                 <div>
                     <span class="tweet-meta">👤 ${esc(t.account || '계정')} | ${fmtDate(t.created_at)}</span>
                     ${isRT(t) ? '<span style="color:#00ba7c; font-size:11px; margin-left:6px;">🔄 RT</span>' : ''}
-                    ${hasMedia(t) ? '<span style="color:#ffd700; font-size:11px; margin-left:6px;">📷 사진</span>' : ''}
+                    ${hasVid ? '<span style="color:#ffd700; font-size:11px; margin-left:6px;">🎞️ 영상/움짤</span>' : (hasMedia(t) ? '<span style="color:#ffd700; font-size:11px; margin-left:6px;">📷 사진</span>' : '')}
                 </div>
-                <button class="btn btn-bookmark" style="padding:2px 8px; font-size:11px;" onclick="toggleBookmark('${t.id_str}', event)">
+                ${readonly ? '' : `<button class="btn btn-bookmark" style="padding:2px 8px; font-size:11px;" onclick="toggleBookmark('${t.id_str}', event)">
                     ${isBookmarked ? '★ 북마크됨' : '☆ 북마크'}
-                </button>
+                </button>`}
             </div>
             <div class="tweet-text">${text}</div>
             ${mediaHtml}
             ${quoteBoxesHtml}
             <div class="card-actions">
-                <span class="badge">현재: ${currentCat}</span>
+                <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+                    <span class="badge">현재: ${esc(currentCat)}</span>
+                    ${threadBtn}
+                </div>
                 <div style="display:flex; gap:6px;">
                     <a href="${twitterUrl}" target="_blank" onclick="event.stopPropagation();" class="btn" style="padding:4px 8px; font-size:11px; text-decoration:none;">🔗 트위터 원문</a>
-                    <button class="btn btn-danger" style="padding:4px 8px; font-size:11px;" onclick="deleteTweet('${t.id_str}', event)">삭제</button>
+                    ${readonly ? '' : `<button class="btn btn-danger" style="padding:4px 8px; font-size:11px;" onclick="deleteTweet('${t.id_str}', event)">삭제</button>`}
                 </div>
             </div>
         `;
@@ -1297,6 +1569,7 @@
         card.querySelectorAll('.quote-embed-box').forEach(box => {
             loadQuoteInto(box, built.quotes[Number(box.dataset.qi)]);
         });
+        bindVideos(card);
         return card;
     }
 </script>
@@ -1348,7 +1621,7 @@ window.cloud = {
 
     // 분류 · 북마크 · 삭제 기록 전부 받기
     async fetchState() {
-        const out = { categories: null, cat: {}, bm: {}, del: {} };
+        const out = { categories: null, cat: {}, bm: {}, del: {}, vid: {} };
         const prefs = await getDoc(doc(db, 'users', uid(), 'meta', 'prefs'));
         if (prefs.exists()) out.categories = prefs.data().categories || null;
         const snap = await getDocs(collection(db, 'users', uid(), 'state'));
@@ -1357,6 +1630,7 @@ window.cloud = {
             Object.assign(out.cat, x.cat || {});
             Object.assign(out.bm, x.bm || {});
             Object.assign(out.del, x.del || {});
+            Object.assign(out.vid, x.vid || {});
         });
         return out;
     },
@@ -1368,7 +1642,7 @@ window.cloud = {
             const s = shardOf(op.id);
             const d = shards[s] || (shards[s] = {});
             const m = d[op.k] || (d[op.k] = {});
-            if (op.k === 'cat') m[op.id] = op.v == null ? deleteField() : op.v;
+            if (op.k === 'cat' || op.k === 'vid') m[op.id] = op.v == null ? deleteField() : op.v;
             else m[op.id] = op.v ? true : deleteField();
         }
         const names = Object.keys(shards);
