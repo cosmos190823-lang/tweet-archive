@@ -139,14 +139,14 @@
     <div id="tab-search" class="section-box">
         <input type="text" id="searchInput" placeholder="검색어 입력 (예: 사과)" onkeypress="if(event.keyCode==13) runSearch();">
         <div style="margin-bottom:8px;">
-            <select id="searchCategorySelect" onchange="runSearch()" style="margin-bottom:0;"></select>
+            <select id="searchCategorySelect" style="margin-bottom:0;"></select>
         </div>
         <div class="filter-options">
-            <label><input type="checkbox" id="excludeRT" onchange="runSearch()"> RT 제외</label>
-            <label><input type="checkbox" id="excludeMention" onchange="runSearch()"> 멘션 제외</label>
-            <label><input type="checkbox" id="onlyMedia" onchange="runSearch()"> 사진 첨부만</label>
+            <label><input type="checkbox" id="excludeRT"> RT 제외</label>
+            <label><input type="checkbox" id="excludeMention"> 멘션 제외</label>
+            <label><input type="checkbox" id="onlyMedia"> 사진 첨부만</label>
         </div>
-        <button class="btn" style="width:100%;" onclick="runSearch()">100% 문장 검색</button>
+        <button class="btn" style="width:100%;" onclick="runSearch()">검색</button>
     </div>
 
     <div id="tab-random" class="section-box" style="display:none;">
