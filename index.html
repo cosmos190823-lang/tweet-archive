@@ -173,13 +173,14 @@
 
     <div id="tab-list" class="section-box" style="display:none;">
         <input type="text" id="listSearchInput" placeholder="검색" onkeypress="if(event.keyCode==13) runListView();">
-        <div class="sort-row">
-            <select id="sortSelect2" onchange="onSortChange(this.value)">
+        <div style="display:flex; gap:8px; margin-bottom:8px;">
+            <select id="listCategorySelect" onchange="runListView()" style="margin-bottom:0;"></select>
+            <select id="sortSelect2" onchange="onSortChange(this.value)" style="margin-bottom:0; width:auto; flex:0 0 120px;">
                 <option value="new">최신순</option>
                 <option value="old">오래된순</option>
             </select>
-            <button class="btn" style="flex:1;" onclick="runListView()">검색</button>
         </div>
+        <button class="btn" style="width:100%; margin-bottom:8px;" onclick="runListView()">검색</button>
         <div class="small-note" id="listTabNote" style="margin-bottom:0;"></div>
     </div>
 
@@ -200,7 +201,7 @@
             <input type="file" id="fileInput" multiple accept=".js,.json" onchange="importFiles(this.files); this.value='';">
         </div>
         <div id="importMsg"></div>
-        <p class="small-note">이미 저장된 트윗은 자동으로 건너뛰고 <b>새 트윗만</b> 클라우드에 추가해요. 같은 파일을 여러 번 올려도 안전해요. 올린 트윗은 로그인한 모든 기기에서 보여요.</p>
+        <p class="small-note">이미 저장된 트윗은 자동으로 건너뛰고 <b>새 트윗만</b> 클라우드에 추가해요. (영상·움짤 주소가 없던 옛 트윗은 주소만 보강해요.) 같은 파일을 여러 번 올려도 안전해요. 올린 트윗은 로그인한 모든 기기에서 보여요.</p>
         <hr style="border-color:#333; margin:15px 0;">
 
         <h4>☁️ 동기화</h4>
@@ -572,6 +573,7 @@
         vs.sort((a, b) => (Number(b.bitrate) || 0) - (Number(a.bitrate) || 0));
         return vs.length ? vs[0].url : '';
     }
+    function hasVideoUrl(t) { return getMediaList(t).some(m => m && m.video_url); }
     function slimMedia(m) {
         const s = { url: m.url, id_str: m.id_str, media_url_https: m.media_url_https, type: m.type };
         const v = bestVideoUrl(m);
@@ -634,7 +636,7 @@
 
             const found = new Map();
             const failed = [];
-            let seenTotal = 0;
+            let seenTotal = 0, patched = 0;
             for (let i = 0; i < files.length; i++) {
                 const file = files[i];
                 msg(`파일 읽는 중… (${i + 1}/${files.length}) ${file.name}`);
@@ -649,7 +651,14 @@
                         if (!t || !t.id_str) continue;
                         seenTotal++;
                         const id = String(t.id_str);
-                        if (rawById.has(id) || deletedSet.has(id) || found.has(id)) continue;
+                        if (deletedSet.has(id) || found.has(id)) continue;
+                        const old = rawById.get(id);
+                        if (old) {
+                            // 이미 저장된 트윗: 예전에 못 담았던 영상/움짤 주소만 보강 (분류·북마크는 그대로)
+                            const fresh = slimTweet(t, old.account || account);
+                            if (hasVideoUrl(fresh) && !hasVideoUrl(old)) { found.set(id, fresh); patched++; }
+                            continue;
+                        }
                         found.set(id, slimTweet(t, account));
                     }
                 } catch (err) { console.error(err); failed.push(file.name); }
@@ -657,7 +666,7 @@
 
             const list = Array.from(found.values());
             if (!list.length) {
-                msg(`새로 추가할 트윗이 없어요. (파일 속 트윗 ${seenTotal}개는 이미 모두 저장돼 있어요)` + (failed.length ? ` / 읽지 못한 파일: ${failed.join(', ')}` : ''));
+                msg(`새로 추가하거나 보강할 트윗이 없어요. (파일 속 트윗 ${seenTotal}개는 이미 모두 저장돼 있고, 영상 주소도 이미 있어요)` + (failed.length ? ` / 읽지 못한 파일: ${failed.join(', ')}` : ''));
                 return;
             }
 
@@ -672,7 +681,7 @@
                 loadedMaxSeq = Math.max(loadedMaxSeq, seq);
             }
             rebuildAll();
-            const done = `✅ 새 트윗 ${list.length}개를 추가했어요! (전체 ${allTweets.length}개)` + (failed.length ? ` / 읽지 못한 파일: ${failed.join(', ')}` : '');
+            const done = `✅ 새 트윗 ${list.length - patched}개를 추가했어요!` + (patched ? ` 영상·움짤 주소 ${patched}개를 보강했어요.` : '') + ` (전체 ${allTweets.length}개)` + (failed.length ? ` / 읽지 못한 파일: ${failed.join(', ')}` : '');
             msg(done);
             alert(done);
             switchTab('search');
@@ -764,6 +773,7 @@
         });
         $('tab-list').style.display = LIST_TABS.includes(tabName) ? 'block' : 'none';
         $('listSearchInput').value = '';
+        $('listCategorySelect').value = 'ALL';
         $('listTabNote').innerText = TAB_NOTES[tabName] || '';
         document.querySelectorAll('.tab-btn').forEach((btn, idx) => {
             btn.classList.toggle('active', ['search', 'random', 'rt', 'mention', 'thread', 'bookmark', 'data'][idx] === tabName);
@@ -931,10 +941,13 @@
     // RT / 멘션 / 타래 / 북마크 탭
     function runListView() {
         const terms = parseTerms($('listSearchInput').value);
+        const cat = $('listCategorySelect').value;
+        const catOk = t => !cat || cat === 'ALL' || (tweetCategoryMap[t.id_str] || '미분류') === cat;
         currentTerms = terms;
         if (currentTab === 'thread') {
             let groups = getThreadInfo().groups.slice();
-            if (terms.length) groups = groups.filter(g => g.some(t => matchTerms(t, terms)));
+            // 타래 안의 트윗 중 (검색어 + 카테고리)에 맞는 게 하나라도 있으면 그 타래를 통째로 보여줌
+            if (terms.length || (cat && cat !== 'ALL')) groups = groups.filter(g => g.some(t => catOk(t) && (!terms.length || matchTerms(t, terms))));
             if (sortOrder === 'old') groups.reverse();
             const entries = groups.map((g, i) => ({ items: g, prev: [], thread: true, num: i + 1 }));
             setEntries(entries, 'thread', groups.length);
@@ -944,6 +957,7 @@
         if (currentTab === 'rt') base = base.filter(t => isRT(t));
         else if (currentTab === 'mention') base = base.filter(t => isExternalMention(t));
         else if (currentTab === 'bookmark') base = base.filter(t => bookmarkSet.has(t.id_str));
+        base = base.filter(catOk);
         if (terms.length) base = base.filter(t => matchTerms(t, terms));
         showList(base, true);
     }
@@ -1124,13 +1138,14 @@
     }
     function updateCategorySelects() {
         const options = categories.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
-        const sS = $('searchCategorySelect'), sB = $('batchCatSelect'), sR = $('randomCatSelect');
-        const keep = { s: sS.value, b: sB.value, r: sR.value };
+        const sS = $('searchCategorySelect'), sB = $('batchCatSelect'), sR = $('randomCatSelect'), sL = $('listCategorySelect');
+        const keep = { s: sS.value, b: sB.value, r: sR.value, l: sL.value };
         sS.innerHTML = `<option value="ALL">전체 카테고리</option>` + options;
         sB.innerHTML = options;
         sR.innerHTML = `<option value="ALL">전체 카테고리에서 랜덤</option>` + options;
+        sL.innerHTML = `<option value="ALL">전체 카테고리</option>` + options;
         const restore = (el, v, fb) => { el.value = v; if (el.value !== v) el.value = fb; };
-        restore(sS, keep.s, 'ALL'); restore(sB, keep.b, '미분류'); restore(sR, keep.r, 'ALL');
+        restore(sS, keep.s, 'ALL'); restore(sB, keep.b, '미분류'); restore(sR, keep.r, 'ALL'); restore(sL, keep.l, 'ALL');
     }
     function catOptionsHtml(sel) {
         const list = categories.includes(sel) ? categories : [sel].concat(categories);
@@ -1462,7 +1477,7 @@
             fetchVideoUrls(t.id_str).then(r => {
                 if (r.status === 'ok') build(r.videos[Math.min(vidx, r.videos.length - 1)].url);
                 else if (r.status === 'error') fail('⚠️ 영상 주소를 불러오지 못했어요.');
-                else fail('⚠️ 영상을 찾을 수 없어요 (삭제됐거나 비공개일 수 있어요).');
+                else fail('⚠️ 저장된 영상 주소가 없어요. 설정 탭에서 아카이브(tweets.js)를 다시 올리면 주소가 보강돼요.');
             });
         };
 
