@@ -204,6 +204,12 @@
         <p class="small-note">이미 저장된 트윗은 자동으로 건너뛰고 <b>새 트윗만</b> 클라우드에 추가해요. (영상·움짤 주소가 없던 옛 트윗은 주소만 보강해요.) 같은 파일을 여러 번 올려도 안전해요. 올린 트윗은 로그인한 모든 기기에서 보여요.</p>
         <hr style="border-color:#333; margin:15px 0;">
 
+        <h4>🎞️ 영상·움짤 파일 연결 (선택)</h4>
+        <p class="small-note">비공개 계정 영상처럼 인터넷 주소로 재생이 안 될 때 쓰세요. 아카이브 안의 <b>data/tweets_media</b> 폴더(또는 아카이브 폴더 전체)를 선택하면, 내가 올린 영상·움짤을 <b>내 기기의 파일</b>로 재생해요. 파일은 어디에도 업로드되지 않고, 이 창을 닫으면 연결이 풀려서 접속할 때마다 다시 선택해야 해요. (컴퓨터 브라우저 권장)</p>
+        <input type="file" id="mediaFolderInput" webkitdirectory multiple onchange="linkMediaFolder(this.files); this.value='';">
+        <div id="mediaFolderMsg" class="small-note"></div>
+        <hr style="border-color:#333; margin:15px 0;">
+
         <h4>☁️ 동기화</h4>
         <p class="small-note">다른 기기에서 바꾼 분류나 새로 올린 트윗이 안 보일 때 눌러 주세요.</p>
         <div style="display:flex; gap:8px; flex-wrap:wrap;">
@@ -1444,20 +1450,51 @@
     }
 
     /* ---------- 내 트윗의 영상 / 움짤 ---------- */
+    const localVideos = {};   // 트윗 id → 연결한 폴더 속 영상 파일들 (이 창을 닫을 때까지만 유지)
+    function localVideoFile(id, vidx) {
+        const arr = localVideos[id];
+        return (arr && arr.length) ? arr[Math.min(vidx, arr.length - 1)] : null;
+    }
+    function linkMediaFolder(fileList) {
+        Object.keys(localVideos).forEach(k => delete localVideos[k]);
+        let n = 0;
+        Array.from(fileList || []).forEach(f => {
+            const m = f.name.match(/^(\d+)-.+\.(mp4|mov|m4v|webm)$/i);   // 아카이브 파일 이름: 트윗번호-키.mp4
+            if (!m) return;
+            (localVideos[m[1]] = localVideos[m[1]] || []).push(f); n++;
+        });
+        Object.values(localVideos).forEach(a => a.sort((x, y) => x.name < y.name ? -1 : 1));
+        $('mediaFolderMsg').innerText = n
+            ? `✅ 영상·움짤 파일 ${n}개 (트윗 ${Object.keys(localVideos).length}개분)를 연결했어요. 이제 다른 탭에서 확인해 보세요.`
+            : '⚠️ 영상 파일(mp4)을 찾지 못했어요. 아카이브의 data/tweets_media 폴더를 선택했는지 확인해 주세요.';
+    }
+
     function mountVideo(slot, t, m, vidx) {
         const isGif = m.type === 'animated_gif';
         const poster = safeHttpUrl(m.media_url_https, '');
         const link = `https://twitter.com/i/web/status/${t.id_str}`;
-        let triedFx = false;
+        const posterImg = poster ? `<img class="tweet-media-img" src="${esc(poster)}" onerror="this.style.display='none';">` : '';
+        const cached = videoCache[t.id_str] && videoCache[t.id_str][Math.min(vidx, videoCache[t.id_str].length - 1)];
+        const direct = safeHttpUrl(m.video_url, '') || (cached && cached.url) || '';
 
-        const placeholder = txt => {
-            slot.innerHTML = (poster ? `<img class="tweet-media-img" src="${esc(poster)}" onerror="this.style.display='none';">` : '') +
-                             `<div class="video-msg">${txt}</div>`;
-        };
+        const placeholder = txt => { slot.innerHTML = posterImg + `<div class="video-msg">${txt}</div>`; };
+        let code = 0, usingFx = false;
         const fail = txt => {
-            slot.innerHTML = (poster ? `<img class="tweet-media-img" src="${esc(poster)}" onerror="this.style.display='none';">` : '') +
-                             `<div class="video-msg">${txt} <a href="${link}" target="_blank" rel="noopener" onclick="event.stopPropagation();" style="color:#1d9bf0; font-weight:bold;">[트위터에서 보기]</a></div>`;
+            slot.innerHTML = posterImg + `<div class="video-msg">${txt} <a href="${link}" target="_blank" rel="noopener" onclick="event.stopPropagation();" style="color:#1d9bf0; font-weight:bold;">[트위터에서 보기]</a>` +
+                (direct ? ` <a href="${esc(direct)}" target="_blank" rel="noopener" onclick="event.stopPropagation();" style="color:#1d9bf0; font-weight:bold;">[영상 주소 직접 열기]</a>` : '') + `</div>`;
         };
+        const failPlay = () => {
+            if (direct) fail(`⚠️ 저장된 영상 주소가 있는데 재생하지 못했어요${code ? ` (오류 ${code})` : ''}. 트위터 서버가 막은 것일 수 있어요(특히 비공개 계정). 설정 탭에서 영상 파일 폴더를 연결하면 재생돼요.`);
+            else fail('⚠️ 저장된 영상 주소가 없어요. 설정 탭에서 tweets.js를 다시 올리거나, 영상 파일 폴더를 연결해 주세요.');
+        };
+
+        // 재생 시도 순서: 연결한 내 파일 → 아카이브에 저장된 주소 → FixTweet
+        const sources = [];
+        const lf = localVideoFile(t.id_str, vidx);
+        if (lf) sources.push(() => URL.createObjectURL(lf));
+        if (direct) sources.push(() => direct);
+        let si = 0;
+
         const build = src => {
             slot.innerHTML = '';
             const v = document.createElement('video');
@@ -1467,22 +1504,27 @@
             v.dataset.src = src;
             if (isGif) { v.loop = true; v.muted = true; v.preload = 'metadata'; v.dataset.gif = '1'; }
             else { v.controls = true; v.preload = 'none'; }
-            v.addEventListener('error', () => { if (!triedFx) { triedFx = true; viaFx(); } else fail('⚠️ 영상을 재생할 수 없어요.'); });
+            v.addEventListener('error', () => {
+                code = v.error ? v.error.code : 0;
+                if (usingFx) failPlay(); else next();
+            });
             slot.appendChild(v);
             watchVideo(v);
         };
+        const next = () => {
+            if (si < sources.length) build(sources[si++]());
+            else viaFx();
+        };
         const viaFx = () => {
-            triedFx = true;
+            usingFx = true;
             placeholder('⏳ 영상 불러오는 중...');
             fetchVideoUrls(t.id_str).then(r => {
                 if (r.status === 'ok') build(r.videos[Math.min(vidx, r.videos.length - 1)].url);
-                else if (r.status === 'error') fail('⚠️ 영상 주소를 불러오지 못했어요.');
-                else fail('⚠️ 저장된 영상 주소가 없어요. 설정 탭에서 아카이브(tweets.js)를 다시 올리면 주소가 보강돼요.');
+                else failPlay();
             });
         };
 
-        const direct = safeHttpUrl(m.video_url, '') || (videoCache[t.id_str] && videoCache[t.id_str][Math.min(vidx, videoCache[t.id_str].length - 1)].url);
-        if (direct) build(direct);
+        if (sources.length) next();
         else {
             placeholder('🎞️ 영상 (보이면 불러와요)');
             slot._load = viaFx;
