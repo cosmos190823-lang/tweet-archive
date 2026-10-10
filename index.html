@@ -201,7 +201,7 @@
             <input type="file" id="fileInput" multiple accept=".js,.json" onchange="importFiles(this.files); this.value='';">
         </div>
         <div id="importMsg"></div>
-        <p class="small-note">이미 저장된 트윗은 자동으로 건너뛰고 <b>새 트윗만</b> 클라우드에 추가해요. (영상·움짤 주소가 없던 옛 트윗은 주소만 보강해요.) 같은 파일을 여러 번 올려도 안전해요. 올린 트윗은 로그인한 모든 기기에서 보여요.</p>
+        <p class="small-note">이미 저장된 트윗은 자동으로 건너뛰고 <b>새 트윗만</b> 클라우드에 추가해요. (영상 주소나 RT 원트 번호가 없던 옛 트윗은 그 정보만 보강해요.) 같은 파일을 여러 번 올려도 안전해요. 올린 트윗은 로그인한 모든 기기에서 보여요.</p>
         <hr style="border-color:#333; margin:15px 0;">
 
         <h4>🎞️ 영상·움짤 파일 연결 (선택)</h4>
@@ -580,11 +580,21 @@
         return vs.length ? vs[0].url : '';
     }
     function hasVideoUrl(t) { return getMediaList(t).some(m => m && m.video_url); }
-    function slimMedia(m) {
+    function slimMedia(m, ownId) {
         const s = { url: m.url, id_str: m.id_str, media_url_https: m.media_url_https, type: m.type };
         const v = bestVideoUrl(m);
         if (v) s.video_url = v;
+        // RT한 트윗의 미디어는 "원트 번호"를 알려줌 (source_status_id 또는 주소 속 status/숫자)
+        let src = m.source_status_id_str || m.source_status_id || '';
+        if (!src) { const mm = String(m.expanded_url || '').match(/status\/(\d+)/); if (mm) src = mm[1]; }
+        if (src && String(src) !== String(ownId)) s.src_id = String(src);
         return s;
+    }
+    function hasSrcId(t) { return getMediaList(t).some(m => m && m.src_id); }
+    // RT한 원트 번호 (미디어가 있는 RT만 알 수 있음. 없으면 '')
+    function rtOrigId(t) {
+        const m = getMediaList(t).find(x => x && x.src_id);
+        return m ? m.src_id : '';
     }
     // 용량을 아끼려고 화면에 필요한 정보만 남김
     function slimTweet(t, account) {
@@ -597,9 +607,9 @@
         if (t.user && t.user.id_str) s.user = { id_str: t.user.id_str };
         const e = t.entities || {};
         const urls = (e.urls || []).map(u => ({ url: u.url, expanded_url: u.expanded_url, display_url: u.display_url }));
-        const media = (e.media || []).map(slimMedia);
+        const media = (e.media || []).map(m => slimMedia(m, s.id_str));
         if (urls.length || media.length) s.entities = { urls, media };
-        const xm = ((t.extended_entities || {}).media || []).map(slimMedia);
+        const xm = ((t.extended_entities || {}).media || []).map(m => slimMedia(m, s.id_str));
         if (xm.length) s.extended_entities = { media: xm };
         return s;
     }
@@ -662,7 +672,7 @@
                         if (old) {
                             // 이미 저장된 트윗: 예전에 못 담았던 영상/움짤 주소만 보강 (분류·북마크는 그대로)
                             const fresh = slimTweet(t, old.account || account);
-                            if (hasVideoUrl(fresh) && !hasVideoUrl(old)) { found.set(id, fresh); patched++; }
+                            if ((hasVideoUrl(fresh) && !hasVideoUrl(old)) || (hasSrcId(fresh) && !hasSrcId(old))) { found.set(id, fresh); patched++; }
                             continue;
                         }
                         found.set(id, slimTweet(t, account));
@@ -672,7 +682,7 @@
 
             const list = Array.from(found.values());
             if (!list.length) {
-                msg(`새로 추가하거나 보강할 트윗이 없어요. (파일 속 트윗 ${seenTotal}개는 이미 모두 저장돼 있고, 영상 주소도 이미 있어요)` + (failed.length ? ` / 읽지 못한 파일: ${failed.join(', ')}` : ''));
+                msg(`새로 추가하거나 보강할 트윗이 없어요. (파일 속 트윗 ${seenTotal}개는 이미 모두 저장돼 있고, 영상 주소·원트 번호도 이미 모두 있어요)` + (failed.length ? ` / 읽지 못한 파일: ${failed.join(', ')}` : ''));
                 return;
             }
 
@@ -687,7 +697,7 @@
                 loadedMaxSeq = Math.max(loadedMaxSeq, seq);
             }
             rebuildAll();
-            const done = `✅ 새 트윗 ${list.length - patched}개를 추가했어요!` + (patched ? ` 영상·움짤 주소 ${patched}개를 보강했어요.` : '') + ` (전체 ${allTweets.length}개)` + (failed.length ? ` / 읽지 못한 파일: ${failed.join(', ')}` : '');
+            const done = `✅ 새 트윗 ${list.length - patched}개를 추가했어요!` + (patched ? ` 영상 주소·원트 번호 ${patched}개를 보강했어요.` : '') + ` (전체 ${allTweets.length}개)` + (failed.length ? ` / 읽지 못한 파일: ${failed.join(', ')}` : '');
             msg(done);
             alert(done);
             switchTab('search');
@@ -1472,9 +1482,10 @@
     function mountVideo(slot, t, m, vidx) {
         const isGif = m.type === 'animated_gif';
         const poster = safeHttpUrl(m.media_url_https, '');
-        const link = `https://twitter.com/i/web/status/${t.id_str}`;
+        const fxId = rtOrigId(t) || t.id_str;   // RT면 원트 번호로 찾아야 로그아웃 상태에서도 보임
+        const link = `https://twitter.com/i/web/status/${fxId}`;
         const posterImg = poster ? `<img class="tweet-media-img" src="${esc(poster)}" onerror="this.style.display='none';">` : '';
-        const cached = videoCache[t.id_str] && videoCache[t.id_str][Math.min(vidx, videoCache[t.id_str].length - 1)];
+        const cached = videoCache[fxId] && videoCache[fxId][Math.min(vidx, videoCache[fxId].length - 1)];
         const direct = safeHttpUrl(m.video_url, '') || (cached && cached.url) || '';
 
         const placeholder = txt => { slot.innerHTML = posterImg + `<div class="video-msg">${txt}</div>`; };
@@ -1518,7 +1529,7 @@
         const viaFx = () => {
             usingFx = true;
             placeholder('⏳ 영상 불러오는 중...');
-            fetchVideoUrls(t.id_str).then(r => {
+            fetchVideoUrls(fxId).then(r => {
                 if (r.status === 'ok') build(r.videos[Math.min(vidx, r.videos.length - 1)].url);
                 else failPlay();
             });
@@ -1617,7 +1628,8 @@
                 : `<div class="quote-embed-box" data-qi="${i}"><div class="quote-loading">⏳ 원트 불러오는 중...</div></div>`)
             .join('');
 
-        const twitterUrl = `https://twitter.com/i/web/status/${t.id_str}`;
+        const origId = isRT(t) ? rtOrigId(t) : '';
+        const twitterUrl = `https://twitter.com/i/web/status/${origId || t.id_str}`;
 
         const mediaList = getMediaList(t);
         let mediaHtml = '';
@@ -1660,7 +1672,9 @@
                 </button>
             </div>
             <div class="tweet-text">${text}</div>
-            ${rtTruncated ? '<div class="rt-full" style="margin-top:8px;"><button class="btn btn-secondary rt-full-btn" style="padding:4px 10px; font-size:12px;">📖 전체 글 불러오기</button></div>' : ''}
+            ${rtTruncated ? (origId
+                ? '<div class="rt-full" style="margin-top:8px;"><button class="btn btn-secondary rt-full-btn" style="padding:4px 10px; font-size:12px;">📖 전체 글 불러오기</button></div>'
+                : '<div class="video-msg">✂️ 아카이브에 잘려서 저장된 글이고, 원트 번호가 없어 전체를 불러올 수 없어요.</div>') : ''}
             ${mediaHtml}
             ${quoteBoxesHtml}
             <div class="card-actions">
@@ -1669,7 +1683,7 @@
                     <select class="cat-select-inline" onchange="changeTweetCategory('${t.id_str}', this.value)">${catOptionsHtml(currentCat)}</select>
                 </div>
                 <div style="display:flex; gap:6px;">
-                    <a href="${twitterUrl}" target="_blank" onclick="event.stopPropagation();" class="btn" style="padding:4px 8px; font-size:11px; text-decoration:none;">🔗 트위터 원문</a>
+                    <a href="${twitterUrl}" target="_blank" onclick="event.stopPropagation();" class="btn" style="padding:4px 8px; font-size:11px; text-decoration:none;">🔗 ${origId ? '원트 원문' : '트위터 원문'}</a>
                     <button class="btn btn-danger" style="padding:4px 8px; font-size:11px;" onclick="deleteTweet('${t.id_str}', event)">삭제</button>
                 </div>
             </div>
@@ -1687,7 +1701,7 @@
             rtBtn.onclick = e => {
                 e.stopPropagation();
                 rtBtn.disabled = true; rtBtn.innerText = '⏳ 불러오는 중...';
-                fetchQuoteData(t.id_str, 'i', false).then(r => {
+                fetchQuoteData(origId, 'i', false).then(r => {
                     if (r.status === 'ok' && valid(r.data)) showFull(r.data);
                     else rtBtn.parentNode.innerHTML = `<span class="video-msg">⚠️ 전체 글을 가져오지 못했어요. <a href="${twitterUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation();" style="color:#1d9bf0; font-weight:bold;">[트위터 원문]</a>에서 확인해 주세요.</span>`;
                 });
