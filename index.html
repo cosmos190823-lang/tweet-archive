@@ -110,6 +110,12 @@
         .cat-label { font-size: 12px; color: #8b98a5; }
         select.cat-select-inline { width: auto; max-width: 170px; margin: 0; padding: 4px 8px; font-size: 12px; }
         .cat-chip small { color: #8b98a5; }
+        .edit-area { width: 100%; min-height: 100px; box-sizing: border-box; background: #000; color: #fff; border: 1px solid #38444d; border-radius: 8px; padding: 8px; font-size: 15px; font-family: inherit; line-height: 1.5; resize: vertical; }
+        .edit-actions { display: flex; gap: 8px; margin-top: 6px; }
+        .edit-actions .btn { padding: 6px 14px; font-size: 13px; }
+        .rt-link-row { display: flex; gap: 6px; margin-top: 8px; }
+        .rt-link-row input { flex: 1; margin: 0; padding: 6px 8px; font-size: 12px; min-width: 0; }
+        .rt-link-row .btn { padding: 4px 12px; font-size: 12px; flex: 0 0 auto; }
         .chip-btn { background: none; border: none; color: #fff; cursor: pointer; padding: 0 2px; font-size: 13px; }
     </style>
 </head>
@@ -674,6 +680,10 @@
                         if (old) {
                             // 이미 저장된 트윗: 예전에 못 담았던 영상/움짤 주소만 보강 (분류·북마크는 그대로)
                             const fresh = slimTweet(t, old.account || account);
+                            if (old.edited || old.rt_full) fresh.full_text = old.full_text;   // 수정한 글은 유지
+                            if (old.edited) fresh.edited = true;
+                            if (old.rt_full) fresh.rt_full = true;
+                            if (old.rt_id && !fresh.rt_id) fresh.rt_id = old.rt_id;
                             if ((hasVideoUrl(fresh) && !hasVideoUrl(old)) || (hasSrcId(fresh) && !hasSrcId(old))) { found.set(id, fresh); patched++; }
                             continue;
                         }
@@ -684,7 +694,7 @@
 
             const list = Array.from(found.values());
             if (!list.length) {
-                msg(`새로 추가하거나 보강할 트윗이 없어요. (파일 속 트윗 ${seenTotal}개는 이미 모두 저장돼 있고, 영상 주소·원트 번호도 이미 모두 있어요)` + (failed.length ? ` / 읽지 못한 파일: ${failed.join(', ')}` : ''));
+                msg(`새로 추가하거나 보강할 트윗이 없어요. (파일 속 트윗 ${seenTotal}개는 이미 모두 저장돼 있고, 이 파일에는 새로 보강할 영상 주소·원트 번호가 없어요)` + (failed.length ? ` / 읽지 못한 파일: ${failed.join(', ')}` : ''));
                 return;
             }
 
@@ -1618,6 +1628,59 @@
         quoteObserver.observe(box);
     }
 
+    /* ---------- 트윗 내용 수정 / RT 원트 번호 저장 (바뀐 트윗만 새 묶음으로 클라우드에 저장) ---------- */
+    function encodeText(x) { return String(x).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+    let persistChain = Promise.resolve();
+    function persistTweet(t) {
+        const copy = {};
+        Object.keys(t).forEach(k => { if (k !== '_lc') copy[k] = t[k]; });
+        const json = JSON.stringify([copy]);
+        cloudWrite(() => {
+            const p = persistChain.catch(() => {}).then(async () => {
+                const seq = (await cloud.getMaxSeq()) + 1;
+                await cloud.putChunk(seq, json, 1);
+                if (idb) await idbPut(idb, { seq: seq, data: json });
+                loadedMaxSeq = Math.max(loadedMaxSeq, seq);
+            });
+            persistChain = p;
+            return p;
+        });
+    }
+    function commitTweetChange(t) {
+        delete t._lc;
+        const r = rawById.get(t.id_str);
+        if (r && r !== t) Object.assign(r, t);
+        persistTweet(t);
+    }
+    function startEditTweet(t, card) {
+        if (card.querySelector('.edit-box')) return;
+        const box = card.querySelector('.tweet-text');
+        const wrap = document.createElement('div');
+        wrap.className = 'edit-box';
+        wrap.innerHTML = `<textarea class="edit-area"></textarea>
+            <div class="edit-actions"><button class="btn" data-act="save">저장</button><button class="btn btn-secondary" data-act="cancel">취소</button></div>
+            <div class="small-note" style="margin-top:6px;">글자 수 제한은 없어요. https://t.co/… 짧은 주소를 지우면 그 링크·인용 표시도 사라져요.</div>`;
+        const ta = wrap.querySelector('textarea');
+        ta.value = decodeEntities(t.full_text || '');
+        const fit = () => { ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight + 4, 600) + 'px'; };
+        ta.addEventListener('input', fit);
+        box.style.display = 'none';
+        box.after(wrap);
+        fit(); ta.focus();
+        wrap.addEventListener('click', e => {
+            e.stopPropagation();
+            const act = e.target.dataset && e.target.dataset.act;
+            if (act === 'cancel') { wrap.remove(); box.style.display = ''; }
+            else if (act === 'save') {
+                if (!ta.value.trim()) { alert('내용이 비어 있어요. 트윗을 없애려면 "삭제"를 이용해 주세요.'); return; }
+                t.full_text = encodeText(ta.value);
+                t.edited = true;
+                commitTweetChange(t);
+                card.replaceWith(createTweetCard(t, currentTerms));
+            }
+        });
+    }
+
     function createTweetCard(t, highlight) {
         const isBookmarked = bookmarkSet.has(t.id_str);
         const isSelected = selectedTweetIds.has(t.id_str);
@@ -1653,7 +1716,7 @@
         const hasVideo = mediaList.some(m => m.type === 'video' || m.type === 'animated_gif');
         // RT는 아카이브에 글이 140자 정도에서 잘려 저장돼 있음 ("…"로 끝남)
         const rawTxt = decodeEntities(t.full_text || '').trim();
-        const rtTruncated = isRT(t) && /(…|\.\.\.)$/.test(rawTxt);
+        const rtTruncated = isRT(t) && !t.edited && !t.rt_full && /(…|\.\.\.)$/.test(rawTxt);
         let rtSearchUrl = '', rtProfileUrl = '';
         if (isRT(t) && !rtOrigId(t)) {
             const mm = rawTxt.match(/^RT @(\w+):\s*([\s\S]*)$/);
@@ -1674,7 +1737,8 @@
         card.dataset.id = t.id_str;
 
         card.onclick = function (e) {
-            if (['BUTTON', 'A', 'SELECT', 'OPTION', 'INPUT', 'IMG', 'VIDEO'].includes(e.target.tagName)) return;
+            if (['BUTTON', 'A', 'SELECT', 'OPTION', 'INPUT', 'TEXTAREA', 'IMG', 'VIDEO'].includes(e.target.tagName)) return;
+            if (e.target.closest('.edit-box, .rt-link-row')) return;
             toggleCardSelection(t.id_str, card);
         };
 
@@ -1683,6 +1747,7 @@
                 <div>
                     <span class="tweet-meta">👤 ${esc(t.account || '계정')} | ${fmtDate(t.created_at)}</span>
                     ${isRT(t) ? '<span style="color:#00ba7c; font-size:11px; margin-left:6px;">🔄 RT</span>' : ''}
+                    ${t.edited ? '<span style="color:#8b98a5; font-size:11px; margin-left:6px;">✏️ 수정됨</span>' : ''}
                     ${hasMedia(t) ? `<span style="color:#ffd700; font-size:11px; margin-left:6px;">${hasVideo ? '🎞️ 영상' : '📷 사진'}</span>` : ''}
                 </div>
                 <button class="btn btn-bookmark bm-btn" data-id="${t.id_str}" style="padding:2px 8px; font-size:11px;" onclick="toggleBookmark('${t.id_str}', event)">
@@ -1693,6 +1758,7 @@
             ${rtTruncated ? (origId
                 ? '<div class="rt-full" style="margin-top:8px;"><button class="btn btn-secondary rt-full-btn" style="padding:4px 10px; font-size:12px;">📖 전체 글 불러오기</button></div>'
                 : `<div class="video-msg">✂️ 아카이브에 잘려서 저장된 글이고 원트 번호가 없어서, 여기선 전체를 볼 수 없어요. ${rtSearchUrl ? `<a href="${esc(rtSearchUrl)}" target="_blank" rel="noopener" onclick="event.stopPropagation();" style="color:#1d9bf0; font-weight:bold;">[🔎 트위터에서 원트 찾기]</a>` : ''}</div>`) : ''}
+            ${(isRT(t) && !origId) ? '<div class="rt-link-row"><input type="text" class="rt-link-input" placeholder="원트 트윗 주소 붙여넣기"><button class="btn rt-link-save">저장</button></div>' : ''}
             ${mediaHtml}
             ${quoteBoxesHtml}
             <div class="card-actions">
@@ -1702,18 +1768,42 @@
                 </div>
                 <div style="display:flex; gap:6px;">
                     <a href="${esc(linkUrl)}" target="_blank" rel="noopener" onclick="event.stopPropagation();" class="btn" style="padding:4px 8px; font-size:11px; text-decoration:none;">${linkLabel.startsWith('🔎') ? '' : '🔗 '}${linkLabel}</a>
+                    <button class="btn btn-secondary edit-btn" style="padding:4px 8px; font-size:11px;">✏️ 수정</button>
                     <button class="btn btn-danger" style="padding:4px 8px; font-size:11px;" onclick="deleteTweet('${t.id_str}', event)">삭제</button>
                 </div>
             </div>
         `;
 
+        const editBtn = card.querySelector('.edit-btn');
+        if (editBtn) editBtn.onclick = e => { e.stopPropagation(); startEditTweet(t, card); };
+        const linkSave = card.querySelector('.rt-link-save');
+        if (linkSave) {
+            const inp = card.querySelector('.rt-link-input');
+            const saveLink = () => {
+                const v = inp.value.trim();
+                const m = v.match(/status(?:es)?\/(\d+)/) || v.match(/^(\d{8,})$/);
+                if (!m) { alert('원트의 트윗 주소(예: https://x.com/계정/status/123…)를 붙여넣어 주세요.'); return; }
+                if (m[1] === t.id_str) { alert('이건 내 RT의 주소예요. 원래 글(원트)의 주소를 붙여넣어 주세요.'); return; }
+                t.rt_id = m[1];
+                commitTweetChange(t);
+                const nc = createTweetCard(t, highlight);
+                card.replaceWith(nc);
+                const b = nc.querySelector('.rt-full-btn');
+                if (b) b.click();          // 바로 전체 글 불러오기
+            };
+            linkSave.onclick = e => { e.stopPropagation(); saveLink(); };
+            inp.addEventListener('keydown', e => { if (e.key === 'Enter') saveLink(); });
+        }
         const rtBtn = card.querySelector('.rt-full-btn');
         if (rtBtn) {
             const hm = rawTxt.match(/^RT @(\w+):/);
             const rtHandle = hm ? hm[1].toLowerCase() : '';
             const showFull = d => {
-                card.querySelector('.tweet-text').innerHTML = `RT @${esc(d.handle || rtHandle)}: ` + escHighlight(d.text, highlight || []);
-                rtBtn.parentNode.remove();
+                // 원트가 나중에 지워져도 남도록, 가져온 전체 글을 내 트윗 데이터에 저장
+                t.full_text = encodeText(`RT @${d.handle || rtHandle}: ${d.text}`);
+                t.rt_full = true;
+                commitTweetChange(t);
+                card.replaceWith(createTweetCard(t, highlight));
             };
             const valid = d => d && d.text && !/^RT @/.test(d.text) && (!rtHandle || (d.handle || '').toLowerCase() === rtHandle);
             rtBtn.onclick = e => {
