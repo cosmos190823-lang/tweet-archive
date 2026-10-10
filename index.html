@@ -1636,6 +1636,9 @@
         }
 
         const hasVideo = mediaList.some(m => m.type === 'video' || m.type === 'animated_gif');
+        // RT는 아카이브에 글이 140자 정도에서 잘려 저장돼 있음 ("…"로 끝남)
+        const rawTxt = decodeEntities(t.full_text || '').trim();
+        const rtTruncated = isRT(t) && /(…|\.\.\.)$/.test(rawTxt);
         const card = document.createElement('div');
         card.className = `tweet-card ${isSelected ? 'selected' : ''}`;
         card.dataset.id = t.id_str;
@@ -1657,6 +1660,7 @@
                 </button>
             </div>
             <div class="tweet-text">${text}</div>
+            ${rtTruncated ? '<div class="rt-full" style="margin-top:8px;"><button class="btn btn-secondary rt-full-btn" style="padding:4px 10px; font-size:12px;">📖 전체 글 불러오기</button></div>' : ''}
             ${mediaHtml}
             ${quoteBoxesHtml}
             <div class="card-actions">
@@ -1671,6 +1675,24 @@
             </div>
         `;
 
+        const rtBtn = card.querySelector('.rt-full-btn');
+        if (rtBtn) {
+            const hm = rawTxt.match(/^RT @(\w+):/);
+            const rtHandle = hm ? hm[1].toLowerCase() : '';
+            const showFull = d => {
+                card.querySelector('.tweet-text').innerHTML = `RT @${esc(d.handle || rtHandle)}: ` + escHighlight(d.text, highlight || []);
+                rtBtn.parentNode.remove();
+            };
+            const valid = d => d && d.text && !/^RT @/.test(d.text) && (!rtHandle || (d.handle || '').toLowerCase() === rtHandle);
+            rtBtn.onclick = e => {
+                e.stopPropagation();
+                rtBtn.disabled = true; rtBtn.innerText = '⏳ 불러오는 중...';
+                fetchQuoteData(t.id_str, 'i', false).then(r => {
+                    if (r.status === 'ok' && valid(r.data)) showFull(r.data);
+                    else rtBtn.parentNode.innerHTML = `<span class="video-msg">⚠️ 전체 글을 가져오지 못했어요. <a href="${twitterUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation();" style="color:#1d9bf0; font-weight:bold;">[트위터 원문]</a>에서 확인해 주세요.</span>`;
+                });
+            };
+        }
         card.querySelectorAll('.video-slot').forEach(slot => {
             mountVideo(slot, t, mediaList[Number(slot.dataset.mi)], Number(slot.dataset.vi));
         });
