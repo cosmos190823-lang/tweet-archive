@@ -591,9 +591,10 @@
         if (src && String(src) !== String(ownId)) s.src_id = String(src);
         return s;
     }
-    function hasSrcId(t) { return getMediaList(t).some(m => m && m.src_id); }
+    function hasSrcId(t) { return !!t.rt_id || getMediaList(t).some(m => m && m.src_id); }
     // RT한 원트 번호 (미디어가 있는 RT만 알 수 있음. 없으면 '')
     function rtOrigId(t) {
+        if (t.rt_id) return t.rt_id;
         const m = getMediaList(t).find(x => x && x.src_id);
         return m ? m.src_id : '';
     }
@@ -604,7 +605,7 @@
         if (t.in_reply_to_user_id_str) s.in_reply_to_user_id_str = t.in_reply_to_user_id_str;
         if (t.quoted_status_id_str) s.quoted_status_id_str = t.quoted_status_id_str;
         if (t.quoted_status_permalink && t.quoted_status_permalink.expanded) s.quoted_status_permalink = { expanded: t.quoted_status_permalink.expanded };
-        if (t.retweeted_status) s.retweeted_status = true;
+        if (t.retweeted_status) { s.retweeted_status = true; if (t.retweeted_status.id_str) s.rt_id = String(t.retweeted_status.id_str); }
         if (t.user && t.user.id_str) s.user = { id_str: t.user.id_str };
         const e = t.entities || {};
         const urls = (e.urls || []).map(u => ({ url: u.url, expanded_url: u.expanded_url, display_url: u.display_url }));
@@ -1653,13 +1654,20 @@
         // RT는 아카이브에 글이 140자 정도에서 잘려 저장돼 있음 ("…"로 끝남)
         const rawTxt = decodeEntities(t.full_text || '').trim();
         const rtTruncated = isRT(t) && /(…|\.\.\.)$/.test(rawTxt);
-        let rtSearchUrl = '';
-        if (rtTruncated && !rtOrigId(t)) {
+        let rtSearchUrl = '', rtProfileUrl = '';
+        if (isRT(t) && !rtOrigId(t)) {
             const mm = rawTxt.match(/^RT @(\w+):\s*([\s\S]*)$/);
             if (mm) {
                 const first = mm[2].replace(/(…|\.\.\.)$/, '').replace(/["\n]/g, ' ').trim().split(/\s+/).slice(0, 5).join(' ');
                 rtSearchUrl = 'https://x.com/search?f=live&q=' + encodeURIComponent(`from:${mm[1]} "${first}"`);
+                rtProfileUrl = 'https://x.com/' + mm[1];
             }
+        }
+        // 링크 버튼: RT를 취소하면 내 RT 주소는 사라지므로, 원트 번호가 없는 RT는 검색/계정 링크로 대체
+        let linkUrl = twitterUrl, linkLabel = origId ? '원트 원문' : '트위터 원문';
+        if (isRT(t) && !origId) {
+            if (rtSearchUrl) { linkUrl = rtSearchUrl; linkLabel = '🔎 원트 찾기'; }
+            else if (rtProfileUrl) { linkUrl = rtProfileUrl; linkLabel = '원트 계정'; }
         }
         const card = document.createElement('div');
         card.className = `tweet-card ${isSelected ? 'selected' : ''}`;
@@ -1693,7 +1701,7 @@
                     <select class="cat-select-inline" onchange="changeTweetCategory('${t.id_str}', this.value)">${catOptionsHtml(currentCat)}</select>
                 </div>
                 <div style="display:flex; gap:6px;">
-                    <a href="${twitterUrl}" target="_blank" onclick="event.stopPropagation();" class="btn" style="padding:4px 8px; font-size:11px; text-decoration:none;">🔗 ${origId ? '원트 원문' : '트위터 원문'}</a>
+                    <a href="${esc(linkUrl)}" target="_blank" rel="noopener" onclick="event.stopPropagation();" class="btn" style="padding:4px 8px; font-size:11px; text-decoration:none;">${linkLabel.startsWith('🔎') ? '' : '🔗 '}${linkLabel}</a>
                     <button class="btn btn-danger" style="padding:4px 8px; font-size:11px;" onclick="deleteTweet('${t.id_str}', event)">삭제</button>
                 </div>
             </div>
