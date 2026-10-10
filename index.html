@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="referrer" content="no-referrer">
     <title>트위터 아카이브 통합 관리기</title>
 
     <!-- ★★★★★ 여기에 Firebase 설정값을 붙여넣으세요 (가이드 5단계) ★★★★★
@@ -1495,7 +1496,8 @@
                 (direct ? ` <a href="${esc(direct)}" target="_blank" rel="noopener" onclick="event.stopPropagation();" style="color:#1d9bf0; font-weight:bold;">[영상 주소 직접 열기]</a>` : '') + `</div>`;
         };
         const failPlay = () => {
-            if (direct) fail(`⚠️ 저장된 영상 주소가 있는데 재생하지 못했어요${code ? ` (오류 ${code})` : ''}. 트위터 서버가 막은 것일 수 있어요(특히 비공개 계정). 설정 탭에서 영상 파일 폴더를 연결하면 재생돼요.`);
+            if (fxId !== t.id_str) fail(`⚠️ 이 영상은 여기서 재생되지 않아요${code ? ` (오류 ${code})` : ''}. 트위터 서버가 막았거나 주소가 만료된 것 같아요.`);
+            else if (direct) fail(`⚠️ 저장된 영상 주소가 있는데 재생하지 못했어요${code ? ` (오류 ${code})` : ''}. 트위터 서버가 막은 것일 수 있어요(특히 비공개 계정). 설정 탭에서 영상 파일 폴더를 연결하면 재생돼요.`);
             else fail('⚠️ 저장된 영상 주소가 없어요. 설정 탭에서 tweets.js를 다시 올리거나, 영상 파일 폴더를 연결해 주세요.');
         };
 
@@ -1651,6 +1653,14 @@
         // RT는 아카이브에 글이 140자 정도에서 잘려 저장돼 있음 ("…"로 끝남)
         const rawTxt = decodeEntities(t.full_text || '').trim();
         const rtTruncated = isRT(t) && /(…|\.\.\.)$/.test(rawTxt);
+        let rtSearchUrl = '';
+        if (rtTruncated && !rtOrigId(t)) {
+            const mm = rawTxt.match(/^RT @(\w+):\s*([\s\S]*)$/);
+            if (mm) {
+                const first = mm[2].replace(/(…|\.\.\.)$/, '').replace(/["\n]/g, ' ').trim().split(/\s+/).slice(0, 5).join(' ');
+                rtSearchUrl = 'https://x.com/search?f=live&q=' + encodeURIComponent(`from:${mm[1]} "${first}"`);
+            }
+        }
         const card = document.createElement('div');
         card.className = `tweet-card ${isSelected ? 'selected' : ''}`;
         card.dataset.id = t.id_str;
@@ -1674,7 +1684,7 @@
             <div class="tweet-text">${text}</div>
             ${rtTruncated ? (origId
                 ? '<div class="rt-full" style="margin-top:8px;"><button class="btn btn-secondary rt-full-btn" style="padding:4px 10px; font-size:12px;">📖 전체 글 불러오기</button></div>'
-                : '<div class="video-msg">✂️ 아카이브에 잘려서 저장된 글이고, 원트 번호가 없어 전체를 불러올 수 없어요.</div>') : ''}
+                : `<div class="video-msg">✂️ 아카이브에 잘려서 저장된 글이고 원트 번호가 없어서, 여기선 전체를 볼 수 없어요. ${rtSearchUrl ? `<a href="${esc(rtSearchUrl)}" target="_blank" rel="noopener" onclick="event.stopPropagation();" style="color:#1d9bf0; font-weight:bold;">[🔎 트위터에서 원트 찾기]</a>` : ''}</div>`) : ''}
             ${mediaHtml}
             ${quoteBoxesHtml}
             <div class="card-actions">
