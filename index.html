@@ -116,6 +116,10 @@
         .rt-link-row { display: flex; gap: 6px; margin-top: 8px; }
         .rt-link-row input { flex: 1; margin: 0; padding: 6px 8px; font-size: 12px; min-width: 0; }
         .rt-link-row .btn { padding: 4px 12px; font-size: 12px; flex: 0 0 auto; }
+        .thread-label-btn { width: 100%; text-align: left; font-size: 12px; padding: 5px 8px; margin-top: 8px; }
+        .thread-continue.collapsed > .tweet-card { display: none; }
+        .thread-group.collapsed > .tweet-card ~ .tweet-card { display: none; }
+        .thread-title { cursor: pointer; }
         .chip-btn { background: none; border: none; color: #fff; cursor: pointer; padding: 0 2px; font-size: 13px; }
     </style>
 </head>
@@ -158,6 +162,8 @@
         <button class="tab-btn" onclick="switchTab('mention')">💬 타인 멘션</button>
         <button class="tab-btn" onclick="switchTab('thread')">🧵 타래(묶어보기)</button>
         <button class="tab-btn" onclick="switchTab('bookmark')">⭐️ 북마크</button>
+        <button class="tab-btn" onclick="switchTab('account')">👤 계정별</button>
+        <button class="tab-btn" onclick="switchTab('add')">✍️ 트윗 추가</button>
         <button class="tab-btn" onclick="switchTab('data')">⚙️ 설정/파일</button>
     </div>
 
@@ -180,6 +186,7 @@
 
     <div id="tab-list" class="section-box" style="display:none;">
         <input type="text" id="listSearchInput" placeholder="검색" onkeypress="if(event.keyCode==13) runListView();">
+        <select id="listAccountSelect" onchange="runListView()" style="display:none; margin-bottom:8px;"></select>
         <div style="display:flex; gap:8px; margin-bottom:8px;">
             <select id="listCategorySelect" onchange="runListView()" style="margin-bottom:0;"></select>
             <select id="sortSelect2" onchange="onSortChange(this.value)" style="margin-bottom:0; width:auto; flex:0 0 120px;">
@@ -200,8 +207,35 @@
         <button class="btn" style="width:100%; margin-top:4px;" onclick="generateRandomTweets()">🎲 다른 랜덤 100개 다시 뽑기</button>
     </div>
 
+    <div id="tab-add" class="section-box" style="display:none;">
+        <h4>✍️ 트윗 직접 추가</h4>
+        <div class="small-note" style="margin:6px 0 2px;">🔗 트윗 주소로 불러오기 (공개 계정 트윗만 · 불러온 뒤 확인하고 아래 "추가"를 눌러요)</div>
+        <div style="display:flex; gap:6px; margin-bottom:6px;">
+            <input type="text" id="addLinkInput" placeholder="https://x.com/계정/status/123…" style="margin:0; flex:1; min-width:0;" onkeypress="if(event.keyCode==13) loadTweetFromLink();">
+            <button class="btn" style="flex:0 0 auto;" onclick="loadTweetFromLink()">불러오기</button>
+        </div>
+        <div id="addLinkMsg" class="small-note"></div>
+        <hr style="border-color:#333; margin:10px 0;">
+        <div class="small-note" style="margin:6px 0 2px;">계정</div>
+        <select id="addAccountSelect" onchange="onAddAccountChange()"></select>
+        <input type="text" id="addAccountNew" placeholder="새 계정 아이디" style="display:none;">
+        <div class="small-note" style="margin:6px 0 2px;">날짜·시간</div>
+        <input type="datetime-local" id="addDate">
+        <div class="small-note" style="margin:6px 0 2px;">내용 (글자 수 제한 없음)</div>
+        <textarea id="addText" class="edit-area" style="min-height:140px;" placeholder="트윗 내용"></textarea>
+        <div class="small-note" style="margin:10px 0 2px;">사진 (최대 4장 · 저장할 때 자동으로 줄여요 · 움짤(GIF)은 첫 화면만 저장돼요)</div>
+        <input type="file" id="addPhotos" accept="image/*" multiple onchange="onAddPhotosChange(this.files); this.value='';">
+        <div id="addPhotoPreview" style="display:flex; gap:8px; flex-wrap:wrap; margin:8px 0;"></div>
+        <div class="small-note" style="margin:6px 0 2px;">분류</div>
+        <select id="addCatSelect"></select>
+        <button class="btn" style="width:100%;" onclick="submitAddTweet()">추가</button>
+        <div id="addMsg" class="small-note" style="margin-top:8px;"></div>
+    </div>
+
     <div id="tab-data" class="section-box" style="display:none;">
         <h4>📁 트윗 파일 추가</h4>
+        <div class="small-note" style="margin:0 0 4px;">이번에 올리는 파일의 <b>계정 아이디</b> (비우면 파일 이름을 써요. 이미 올린 트윗도 이 이름으로 바뀌어요)</div>
+        <input type="text" id="importAccountName" placeholder="예: myid">
         <div id="dropZone" class="drop-zone">
             <div>📥 트위터 아카이브의 <b>tweets.js</b> 파일을 여기로 끌어다 놓으세요</div>
             <div class="small-note">폰에서는 아래 버튼으로 선택하세요 · 파일이 여러 개면 한꺼번에 선택해도 돼요</div>
@@ -254,6 +288,7 @@
     
     <div id="pageSelectControl" style="display:none; margin-bottom:8px;">
         <button class="btn btn-secondary" style="width:100%; font-size:13px;" onclick="toggleSelectCurrentPage()">현재 페이지 전체 선택 / 해제</button>
+        <button class="btn btn-secondary" style="width:100%; font-size:13px; margin-top:6px;" onclick="toggleAllThreads()">🧵 이 페이지 타래 모두 접기 / 펼치기</button>
     </div>
 
     <div class="pagination" id="topPagination" style="display:none;">
@@ -453,7 +488,15 @@
     }
 
     function ingestChunk(jsonText) {
-        try { JSON.parse(jsonText).forEach(t => { if (t && t.id_str) rawById.set(t.id_str, t); }); }
+        try {
+            JSON.parse(jsonText).forEach(t => {
+                if (!t || !t.id_str) return;
+                if (t._patch) {                       // 일부 값만 바꾸는 기록 (예: 계정 이름)
+                    const o = rawById.get(t.id_str);
+                    if (o) { const c = Object.assign({}, t); delete c._patch; Object.assign(o, c); }
+                } else rawById.set(t.id_str, t);
+            });
+        }
         catch (e) { console.warn('읽을 수 없는 묶음을 건너뜀', e); }
     }
 
@@ -660,7 +703,8 @@
 
             const found = new Map();
             const failed = [];
-            let seenTotal = 0, patched = 0;
+            const overrideName = ($('importAccountName') ? $('importAccountName').value.trim() : '');
+            let seenTotal = 0, patched = 0, added = 0, acctChanged = 0;
             for (let i = 0; i < files.length; i++) {
                 const file = files[i];
                 msg(`파일 읽는 중… (${i + 1}/${files.length}) ${file.name}`);
@@ -669,7 +713,7 @@
                     const s = text.indexOf('['), e = text.lastIndexOf(']');
                     if (s < 0 || e < 0) throw new Error('형식 오류');
                     const arr = JSON.parse(text.substring(s, e + 1));
-                    const account = file.name.replace(/\.(js|json)$/i, '');
+                    const account = overrideName || file.name.replace(/\.(js|json)$/i, '');
                     for (const item of arr) {
                         const t = item && (item.tweet ? item.tweet : item);
                         if (!t || !t.id_str) continue;
@@ -679,15 +723,16 @@
                         const old = rawById.get(id);
                         if (old) {
                             // 이미 저장된 트윗: 예전에 못 담았던 영상/움짤 주소만 보강 (분류·북마크는 그대로)
-                            const fresh = slimTweet(t, old.account || account);
+                            const fresh = slimTweet(t, overrideName || old.account || account);
                             if (old.edited || old.rt_full) fresh.full_text = old.full_text;   // 수정한 글은 유지
                             if (old.edited) fresh.edited = true;
                             if (old.rt_full) fresh.rt_full = true;
                             if (old.rt_id && !fresh.rt_id) fresh.rt_id = old.rt_id;
                             if ((hasVideoUrl(fresh) && !hasVideoUrl(old)) || (hasSrcId(fresh) && !hasSrcId(old))) { found.set(id, fresh); patched++; }
+                            else if (overrideName && old.account !== overrideName) { found.set(id, { id_str: id, account: overrideName, _patch: true }); acctChanged++; }
                             continue;
                         }
-                        found.set(id, slimTweet(t, account));
+                        found.set(id, slimTweet(t, account)); added++;
                     }
                 } catch (err) { console.error(err); failed.push(file.name); }
             }
@@ -705,11 +750,14 @@
                 const seq = base + 1 + i;
                 await cloud.putChunk(seq, chunks[i].json, chunks[i].count);
                 if (idb) await idbPut(idb, { seq: seq, data: chunks[i].json });
-                chunks[i].tweets.forEach(t => rawById.set(t.id_str, t));
+                chunks[i].tweets.forEach(t => {
+                    if (t._patch) { const o = rawById.get(t.id_str); if (o) o.account = t.account; }
+                    else rawById.set(t.id_str, t);
+                });
                 loadedMaxSeq = Math.max(loadedMaxSeq, seq);
             }
             rebuildAll();
-            const done = `✅ 새 트윗 ${list.length - patched}개를 추가했어요!` + (patched ? ` 영상 주소·원트 번호 ${patched}개를 보강했어요.` : '') + ` (전체 ${allTweets.length}개)` + (failed.length ? ` / 읽지 못한 파일: ${failed.join(', ')}` : '');
+            const done = `✅ 새 트윗 ${added}개를 추가했어요!` + (patched ? ` 영상 주소·원트 번호 ${patched}개를 보강했어요.` : '') + (acctChanged ? ` 계정 이름 ${acctChanged}개를 '${overrideName}'(으)로 바꿨어요.` : '') + ` (전체 ${allTweets.length}개)` + (failed.length ? ` / 읽지 못한 파일: ${failed.join(', ')}` : '');
             msg(done);
             alert(done);
             switchTab('search');
@@ -773,12 +821,13 @@
     let currentMatchedCount = 0;
     let currentItemCount = 0;
     let threadInfoCache = null;
-    const LIST_TABS = ['rt', 'mention', 'thread', 'bookmark'];
+    const LIST_TABS = ['rt', 'mention', 'thread', 'bookmark', 'account'];
     const TAB_NOTES = {
         rt: '',
         mention: '답글 단 원트가 공개 계정이고 사진이 있으면, 인용한 것처럼 함께 보여줘요.',
         thread: '타래 안의 글은 항상 위→아래 시간순이에요. 정렬은 타래 첫 글의 날짜 기준이에요.',
-        bookmark: ''
+        bookmark: '',
+        account: '계정 이름은 아카이브를 올릴 때 적은 "계정 아이디"예요. (설정/파일 탭)'
     };
 
     function syncSortSelects() {
@@ -796,15 +845,17 @@
         currentTab = tabName;
         currentPage = 1;
         currentTerms = [];
-        ['search', 'random', 'data'].forEach(t => {
+        ['search', 'random', 'add', 'data'].forEach(t => {
             $(`tab-${t}`).style.display = (t === tabName) ? 'block' : 'none';
         });
         $('tab-list').style.display = LIST_TABS.includes(tabName) ? 'block' : 'none';
         $('listSearchInput').value = '';
         $('listCategorySelect').value = 'ALL';
+        $('listAccountSelect').style.display = (tabName === 'account') ? '' : 'none';
+        if (tabName === 'account') updateAccountSelects();
         $('listTabNote').innerText = TAB_NOTES[tabName] || '';
         document.querySelectorAll('.tab-btn').forEach((btn, idx) => {
-            btn.classList.toggle('active', ['search', 'random', 'rt', 'mention', 'thread', 'bookmark', 'data'][idx] === tabName);
+            btn.classList.toggle('active', ['search', 'random', 'rt', 'mention', 'thread', 'bookmark', 'account', 'add', 'data'][idx] === tabName);
         });
         syncSortSelects();
         selectedTweetIds.clear();
@@ -815,6 +866,12 @@
             $('tweetResults').innerHTML = '';
             $('statusInfo').innerText = `현재 저장된 트윗: ${allTweets.length}개`;
             renderCategoryChips();
+        }
+        else if (tabName === 'add') {
+            togglePagination(false);
+            $('tweetResults').innerHTML = '';
+            $('statusInfo').innerText = '';
+            initAddForm();
         }
         else if (tabName === 'random') generateRandomTweets();
         else if (LIST_TABS.includes(tabName)) runListView();
@@ -985,6 +1042,10 @@
         if (currentTab === 'rt') base = base.filter(t => isRT(t));
         else if (currentTab === 'mention') base = base.filter(t => isExternalMention(t));
         else if (currentTab === 'bookmark') base = base.filter(t => bookmarkSet.has(t.id_str));
+        else if (currentTab === 'account') {
+            const acc = $('listAccountSelect').value;
+            if (acc && acc !== 'ALL') base = base.filter(t => accountOf(t) === acc);
+        }
         base = base.filter(catOk);
         if (terms.length) base = base.filter(t => matchTerms(t, terms));
         showList(base, true);
@@ -1036,6 +1097,13 @@
         refreshSelectionUI();
     }
 
+    function toggleAllThreads() {
+        const els = Array.from(document.querySelectorAll('#tweetResults .thread-continue, #tweetResults .thread-group')).filter(e => e._set);
+        if (!els.length) return;
+        const collapse = els.some(e => !e.classList.contains('collapsed'));   // 하나라도 펼쳐져 있으면 모두 접기
+        els.forEach(e => e._set(collapse));
+    }
+
     function renderCurrentPage() {
         const maxPage = maxPageNum();
         if (currentPage > maxPage) currentPage = maxPage;
@@ -1073,7 +1141,13 @@
         if (entry.thread) {
             const g = document.createElement('div');
             g.className = 'thread-group';
-            g.innerHTML = `<div class="thread-title">🧵 타래 #${entry.num} (${items.length}개 이어짐)</div>`;
+            const title = document.createElement('div');
+            title.className = 'thread-title';
+            const setT = c => { title.innerText = c ? `▶ 🧵 타래 #${entry.num} (${items.length}개) — 눌러서 펼치기` : `▼ 🧵 타래 #${entry.num} (${items.length}개 이어짐) — 눌러서 접기`; };
+            g._set = c => { g.classList.toggle('collapsed', c); setT(c); };
+            title.onclick = () => g._set(!g.classList.contains('collapsed'));
+            setT(false);
+            g.appendChild(title);
             items.forEach(t => g.appendChild(createTweetCard(t, currentTerms)));
             return g;
         }
@@ -1102,7 +1176,14 @@
         if (items.length > 1) {
             const cont = document.createElement('div');
             cont.className = 'thread-continue';
-            cont.innerHTML = `<div class="thread-label">🧵 아래로 이어진 타래 (${items.length - 1}개)</div>`;
+            const n = items.length - 1;
+            const lb = document.createElement('button');
+            lb.className = 'btn btn-secondary thread-label-btn';
+            const setL = c => { lb.innerText = c ? `▶ 🧵 아래로 이어진 타래 ${n}개 펼치기` : `▼ 🧵 아래로 이어진 타래 ${n}개 접기`; };
+            cont._set = c => { cont.classList.toggle('collapsed', c); setL(c); };
+            lb.onclick = () => cont._set(!cont.classList.contains('collapsed'));
+            setL(false);
+            cont.appendChild(lb);
             items.slice(1).forEach(t => cont.appendChild(createTweetCard(t, currentTerms)));
             wrap.appendChild(cont);
         }
@@ -1681,6 +1762,159 @@
         });
     }
 
+
+    /* ---------- 계정 ---------- */
+    function accountOf(t) { return t.account || '(이름 없음)'; }
+    function accountCounts() {
+        const c = {};
+        allTweets.forEach(t => { const a = accountOf(t); c[a] = (c[a] || 0) + 1; });
+        return Object.keys(c).sort((a, b) => c[b] - c[a]).map(a => [a, c[a]]);
+    }
+    function updateAccountSelects() {
+        const list = accountCounts();
+        const el = $('listAccountSelect');
+        const keep = el.value;
+        el.innerHTML = `<option value="ALL">전체 계정 (${allTweets.length})</option>` +
+            list.map(([a, n]) => `<option value="${esc(a)}">👤 ${esc(a)} (${n})</option>`).join('');
+        el.value = keep;
+        if (el.value !== keep) el.value = 'ALL';
+    }
+
+    /* ---------- 트윗 직접 추가 ---------- */
+    let addPhotoData = [];
+    let addLinked = null;      // 링크로 불러온 트윗 정보 {id, author, videos}
+    function toTwitterDate(d) {
+        const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        const mons = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const p = n => String(n).padStart(2, '0');
+        const off = -d.getTimezoneOffset();
+        const sign = off < 0 ? '-' : '+';
+        const ao = Math.abs(off);
+        return `${days[d.getDay()]} ${mons[d.getMonth()]} ${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())} ${sign}${p(Math.floor(ao / 60))}${p(ao % 60)} ${d.getFullYear()}`;
+    }
+    // 날짜에 맞는 트윗 번호 만들기 (번호 순서 = 시간 순서라서 정렬이 맞아요)
+    function makeSnowflake(ms) {
+        return ((BigInt(ms) - 1288834974657n) << 22n | BigInt(Math.floor(Math.random() * 4194304))).toString();
+    }
+    function initAddForm() {
+        const list = accountCounts();
+        const sel = $('addAccountSelect');
+        const keep = sel.value;
+        sel.innerHTML = list.map(([a]) => `<option value="${esc(a)}">${esc(a)}</option>`).join('') + '<option value="__new__">➕ 새 계정 입력…</option>';
+        sel.value = keep;
+        if (sel.value !== keep) sel.value = list.length ? list[0][0] : '__new__';
+        onAddAccountChange();
+        const c = $('addCatSelect');
+        const ck = c.value;
+        c.innerHTML = categories.map(x => `<option value="${esc(x)}">${esc(x)}</option>`).join('');
+        c.value = ck; if (c.value !== ck) c.value = '미분류';
+        if (!$('addDate').value) {
+            const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+            $('addDate').value = d.toISOString().slice(0, 16);
+        }
+    }
+    function onAddAccountChange() { $('addAccountNew').style.display = ($('addAccountSelect').value === '__new__') ? '' : 'none'; }
+
+    function shrinkImage(file) {
+        return new Promise((resolve, reject) => {
+            const url = URL.createObjectURL(file);
+            const img = new Image();
+            img.onload = () => {
+                try {
+                    let scale = Math.min(1, 1280 / Math.max(img.naturalWidth, img.naturalHeight));
+                    let q = 0.8, out = '';
+                    for (let tries = 0; tries < 12; tries++) {
+                        const w = Math.max(1, Math.round(img.naturalWidth * scale)), h = Math.max(1, Math.round(img.naturalHeight * scale));
+                        const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+                        const cx = cv.getContext('2d');
+                        cx.fillStyle = '#fff'; cx.fillRect(0, 0, w, h); cx.drawImage(img, 0, 0, w, h);
+                        out = cv.toDataURL('image/jpeg', q);
+                        if (out.length <= 200000) break;
+                        if (q > 0.55) q -= 0.1; else scale *= 0.85;
+                    }
+                    URL.revokeObjectURL(url);
+                    resolve(out);
+                } catch (e) { reject(e); }
+            };
+            img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('사진을 읽을 수 없어요')); };
+            img.src = url;
+        });
+    }
+    function renderAddPreview() {
+        $('addPhotoPreview').innerHTML = addPhotoData.map((u, i) =>
+            `<div style="position:relative;"><img src="${u}" style="height:80px; border-radius:6px; border:1px solid #38444d;"><button class="btn btn-danger" style="position:absolute; top:2px; right:2px; padding:0 6px; font-size:11px;" onclick="removeAddPhoto(${i})">✕</button></div>`).join('');
+    }
+    function loadTweetFromLink() {
+        const msg = t => { $('addLinkMsg').innerText = t; };
+        const st = parseStatusUrl($('addLinkInput').value.trim());
+        if (!st) { msg('트윗 주소(예: https://x.com/계정/status/123…)를 붙여넣어 주세요.'); return; }
+        if (rawById.has(st.id)) { msg('이미 저장된 트윗이에요.'); return; }
+        msg('⏳ 불러오는 중…');
+        fxGet(st.id, st.user).then(r => {
+            const tw = r.json && r.json.tweet;
+            if (r.error) { msg('⚠️ 불러오지 못했어요. 인터넷 연결을 확인하고 다시 시도해 주세요.'); return; }
+            if (!tw) {
+                msg(r.json && GONE_CODES.includes(r.json.code)
+                    ? '⚠️ 삭제됐거나 비공개 계정의 트윗이라 불러올 수 없어요. 비공개 계정 트윗은 아카이브로 올리거나, 아래에 직접 입력해 주세요.'
+                    : '⚠️ 불러오지 못했어요.');
+                return;
+            }
+            const d = parseFx(tw);
+            addLinked = { id: st.id, author: d.handle, videos: d.videos };
+            $('addText').value = d.text || '';
+            addPhotoData = d.photos.slice(0, 4);
+            renderAddPreview();
+            const dt = tw.created_timestamp ? new Date(tw.created_timestamp * 1000) : new Date(d.date);
+            if (!isNaN(dt.getTime())) { const l = new Date(dt.getTime() - dt.getTimezoneOffset() * 60000); $('addDate').value = l.toISOString().slice(0, 16); }
+            msg(`✅ @${d.handle}의 트윗을 불러왔어요 (사진 ${d.photos.length}장${d.videos.length ? `, 영상 ${d.videos.length}개` : ''}). 아래에서 계정·분류를 고르고 "추가"를 눌러 주세요. 사진은 트위터에서 가져와 보여주는 방식이라, 원트가 지워지면 안 보일 수 있어요.`);
+        });
+    }
+    function removeAddPhoto(i) { addPhotoData.splice(i, 1); renderAddPreview(); }
+    async function onAddPhotosChange(fileList) {
+        const files = Array.from(fileList || []);
+        const msg = t => { $('addMsg').innerText = t; };
+        for (const f of files) {
+            if (addPhotoData.length >= 4) { msg('사진은 최대 4장까지예요.'); break; }
+            try { msg('사진 줄이는 중…'); addPhotoData.push(await shrinkImage(f)); renderAddPreview(); msg(''); }
+            catch (e) { msg('⚠️ 사진을 불러오지 못했어요: ' + f.name); }
+        }
+    }
+    function openLocalImage(src) {
+        const w = window.open('', '_blank');
+        fetch(src).then(r => r.blob()).then(b => { if (w) w.location = URL.createObjectURL(b); }).catch(() => { if (w) w.close(); });
+    }
+    function submitAddTweet() {
+        const msg = t => { $('addMsg').innerText = t; };
+        const text = $('addText').value;
+        if (!text.trim() && !addPhotoData.length) { msg('내용이나 사진 중 하나는 있어야 해요.'); return; }
+        let account = $('addAccountSelect').value;
+        if (account === '__new__') account = $('addAccountNew').value.trim();
+        if (!account) { msg('계정 아이디를 입력해 주세요.'); return; }
+        const dv = $('addDate').value;
+        const d = dv ? new Date(dv) : new Date();
+        if (isNaN(d.getTime()) || d.getTime() < 1288834974657) { msg('날짜를 확인해 주세요. (2010년 11월 이후만 지원해요)'); return; }
+        const linked = addLinked;
+        const id = linked ? linked.id : makeSnowflake(d.getTime());
+        if (linked && rawById.has(id)) { msg('이미 저장된 트윗이에요.'); return; }
+        const t = { id_str: id, created_at: toTwitterDate(d), full_text: encodeText(text), account, entities: { urls: [] } };
+        if (linked) t.src_author = linked.author; else t.manual = true;
+        const media = addPhotoData.map((u, i) => ({ id_str: id + '_' + i, type: 'photo', media_url_https: u }));
+        if (linked) (linked.videos || []).forEach((v, i) => media.push({ id_str: id + '_v' + i, type: v.gif ? 'animated_gif' : 'video', media_url_https: v.thumb || '', video_url: v.url }));
+        if (media.length) t.extended_entities = { media };
+        if (JSON.stringify(t).length > 950000) { msg('사진 용량이 너무 커요. 사진 수를 줄여 주세요.'); return; }
+        rawById.set(id, t);
+        rebuildAll();
+        persistTweet(t);
+        const cat = $('addCatSelect').value;
+        if (cat && cat !== '미분류') {
+            tweetCategoryMap[id] = cat;
+            cloudWrite(() => cloud.setState([{ k: 'cat', id, v: cat }]));
+        }
+        $('addText').value = ''; addPhotoData = []; addLinked = null; $('addLinkInput').value = ''; $('addLinkMsg').innerText = ''; renderAddPreview();
+        initAddForm();
+        msg(`✅ 추가했어요! (${account} · ${fmtDate(t.created_at)}) '계정별' 탭이나 검색에서 볼 수 있어요. 이어서 다른 트윗을 추가해도 돼요.`);
+    }
+
     function createTweetCard(t, highlight) {
         const isBookmarked = bookmarkSet.has(t.id_str);
         const isSelected = selectedTweetIds.has(t.id_str);
@@ -1707,6 +1941,7 @@
                     mediaHtml += `<div class="video-slot" data-mi="${i}" data-vi="${vi++}"></div>`;
                 } else {
                     const imgSrc = m.media_url_https || m.media_url || `data/tweet_media/${t.id_str}-${m.id_str || '1'}.jpg`;
+                    if (imgSrc.startsWith('data:')) { mediaHtml += `<img class="tweet-media-img local-img" data-mi="${i}">`; return; }
                     mediaHtml += `<img src="${imgSrc}" class="tweet-media-img" loading="lazy" onclick="event.stopPropagation(); window.open('${imgSrc}', '_blank');" onerror="this.style.display='none';">`;
                 }
             });
@@ -1748,6 +1983,8 @@
                     <span class="tweet-meta">👤 ${esc(t.account || '계정')} | ${fmtDate(t.created_at)}</span>
                     ${isRT(t) ? '<span style="color:#00ba7c; font-size:11px; margin-left:6px;">🔄 RT</span>' : ''}
                     ${t.edited ? '<span style="color:#8b98a5; font-size:11px; margin-left:6px;">✏️ 수정됨</span>' : ''}
+                    ${t.manual ? '<span style="color:#8b98a5; font-size:11px; margin-left:6px;">✍️ 직접 추가</span>' : ''}
+                    ${t.src_author ? `<span style="color:#8b98a5; font-size:11px; margin-left:6px;">🔗 @${esc(t.src_author)}</span>` : ''}
                     ${hasMedia(t) ? `<span style="color:#ffd700; font-size:11px; margin-left:6px;">${hasVideo ? '🎞️ 영상' : '📷 사진'}</span>` : ''}
                 </div>
                 <button class="btn btn-bookmark bm-btn" data-id="${t.id_str}" style="padding:2px 8px; font-size:11px;" onclick="toggleBookmark('${t.id_str}', event)">
@@ -1767,13 +2004,18 @@
                     <select class="cat-select-inline" onchange="changeTweetCategory('${t.id_str}', this.value)">${catOptionsHtml(currentCat)}</select>
                 </div>
                 <div style="display:flex; gap:6px;">
-                    <a href="${esc(linkUrl)}" target="_blank" rel="noopener" onclick="event.stopPropagation();" class="btn" style="padding:4px 8px; font-size:11px; text-decoration:none;">${linkLabel.startsWith('🔎') ? '' : '🔗 '}${linkLabel}</a>
+                    ${t.manual ? '' : `<a href="${esc(linkUrl)}" target="_blank" rel="noopener" onclick="event.stopPropagation();" class="btn" style="padding:4px 8px; font-size:11px; text-decoration:none;">${linkLabel.startsWith('🔎') ? '' : '🔗 '}${linkLabel}</a>`}
                     <button class="btn btn-secondary edit-btn" style="padding:4px 8px; font-size:11px;">✏️ 수정</button>
                     <button class="btn btn-danger" style="padding:4px 8px; font-size:11px;" onclick="deleteTweet('${t.id_str}', event)">삭제</button>
                 </div>
             </div>
         `;
 
+        card.querySelectorAll('.local-img').forEach(img => {
+            const src = mediaList[Number(img.dataset.mi)].media_url_https;
+            img.src = src;
+            img.onclick = e => { e.stopPropagation(); openLocalImage(src); };
+        });
         const editBtn = card.querySelector('.edit-btn');
         if (editBtn) editBtn.onclick = e => { e.stopPropagation(); startEditTweet(t, card); };
         const linkSave = card.querySelector('.rt-link-save');
