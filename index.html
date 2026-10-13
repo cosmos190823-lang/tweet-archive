@@ -162,13 +162,13 @@
         <button class="tab-btn" onclick="switchTab('mention')">💬 타인 멘션</button>
         <button class="tab-btn" onclick="switchTab('thread')">🧵 타래(묶어보기)</button>
         <button class="tab-btn" onclick="switchTab('bookmark')">⭐️ 북마크</button>
-        <button class="tab-btn" onclick="switchTab('account')">👤 계정별</button>
         <button class="tab-btn" onclick="switchTab('add')">✍️ 트윗 추가</button>
         <button class="tab-btn" onclick="switchTab('data')">⚙️ 설정/파일</button>
     </div>
 
     <div id="tab-search" class="section-box">
         <input type="text" id="searchInput" placeholder="검색" onkeypress="if(event.keyCode==13) runSearch();">
+        <select id="searchAccountSelect" style="margin-bottom:8px;"></select>
         <div style="display:flex; gap:8px; margin-bottom:8px;">
             <select id="searchCategorySelect" style="margin-bottom:0;"></select>
             <select id="sortSelect1" onchange="onSortChange(this.value)" style="margin-bottom:0; width:auto; flex:0 0 120px;">
@@ -186,7 +186,6 @@
 
     <div id="tab-list" class="section-box" style="display:none;">
         <input type="text" id="listSearchInput" placeholder="검색" onkeypress="if(event.keyCode==13) runListView();">
-        <select id="listAccountSelect" onchange="runListView()" style="display:none; margin-bottom:8px;"></select>
         <div style="display:flex; gap:8px; margin-bottom:8px;">
             <select id="listCategorySelect" onchange="runListView()" style="margin-bottom:0;"></select>
             <select id="sortSelect2" onchange="onSortChange(this.value)" style="margin-bottom:0; width:auto; flex:0 0 120px;">
@@ -586,6 +585,7 @@
         allTweets = Array.from(rawById.values()).filter(t => !deletedSet.has(t.id_str)).sort(newestFirst);
         tweetMapById = new Map(allTweets.map(t => [t.id_str, t]));
         threadInfoCache = null;
+        if (typeof updateAccountSelects === 'function') updateAccountSelects();
     }
 
     async function syncNow() {
@@ -821,13 +821,12 @@
     let currentMatchedCount = 0;
     let currentItemCount = 0;
     let threadInfoCache = null;
-    const LIST_TABS = ['rt', 'mention', 'thread', 'bookmark', 'account'];
+    const LIST_TABS = ['rt', 'mention', 'thread', 'bookmark'];
     const TAB_NOTES = {
         rt: '',
         mention: '답글 단 원트가 공개 계정이고 사진이 있으면, 인용한 것처럼 함께 보여줘요.',
         thread: '타래 안의 글은 항상 위→아래 시간순이에요. 정렬은 타래 첫 글의 날짜 기준이에요.',
-        bookmark: '',
-        account: '계정 이름은 아카이브를 올릴 때 적은 "계정 아이디"예요. (설정/파일 탭)'
+        bookmark: ''
     };
 
     function syncSortSelects() {
@@ -851,11 +850,9 @@
         $('tab-list').style.display = LIST_TABS.includes(tabName) ? 'block' : 'none';
         $('listSearchInput').value = '';
         $('listCategorySelect').value = 'ALL';
-        $('listAccountSelect').style.display = (tabName === 'account') ? '' : 'none';
-        if (tabName === 'account') updateAccountSelects();
         $('listTabNote').innerText = TAB_NOTES[tabName] || '';
         document.querySelectorAll('.tab-btn').forEach((btn, idx) => {
-            btn.classList.toggle('active', ['search', 'random', 'rt', 'mention', 'thread', 'bookmark', 'account', 'add', 'data'][idx] === tabName);
+            btn.classList.toggle('active', ['search', 'random', 'rt', 'mention', 'thread', 'bookmark', 'add', 'data'][idx] === tabName);
         });
         syncSortSelects();
         selectedTweetIds.clear();
@@ -1010,12 +1007,14 @@
         const exMention = $('excludeMention').checked;
         const onlyMedia = $('onlyMedia').checked;
         const selectedCategory = $('searchCategorySelect').value;
+        const selectedAccount = $('searchAccountSelect').value;
 
         currentTerms = terms;
         let filtered = allTweets;
         if (selectedCategory && selectedCategory !== 'ALL') {
             filtered = filtered.filter(t => (tweetCategoryMap[t.id_str] || '미분류') === selectedCategory);
         }
+        if (selectedAccount && selectedAccount !== 'ALL') filtered = filtered.filter(t => accountOf(t) === selectedAccount);
         if (exRT) filtered = filtered.filter(t => !isRT(t));
         if (exMention) filtered = filtered.filter(t => !isExternalMention(t));
         if (onlyMedia) filtered = filtered.filter(t => hasMedia(t));
@@ -1042,10 +1041,6 @@
         if (currentTab === 'rt') base = base.filter(t => isRT(t));
         else if (currentTab === 'mention') base = base.filter(t => isExternalMention(t));
         else if (currentTab === 'bookmark') base = base.filter(t => bookmarkSet.has(t.id_str));
-        else if (currentTab === 'account') {
-            const acc = $('listAccountSelect').value;
-            if (acc && acc !== 'ALL') base = base.filter(t => accountOf(t) === acc);
-        }
         base = base.filter(catOk);
         if (terms.length) base = base.filter(t => matchTerms(t, terms));
         showList(base, true);
@@ -1274,6 +1269,7 @@
         allTweets = allTweets.filter(t => t.id_str !== id);
         tweetMapById.delete(id);
         threadInfoCache = null;
+        if (typeof updateAccountSelects === 'function') updateAccountSelects();
     }
     function removeCardsFromDom(ids) {
         ids.forEach(id => document.querySelectorAll(`#tweetResults .tweet-card[data-id="${id}"]`).forEach(c => c.remove()));
@@ -1771,8 +1767,9 @@
         return Object.keys(c).sort((a, b) => c[b] - c[a]).map(a => [a, c[a]]);
     }
     function updateAccountSelects() {
+        const el = $('searchAccountSelect');
+        if (!el) return;
         const list = accountCounts();
-        const el = $('listAccountSelect');
         const keep = el.value;
         el.innerHTML = `<option value="ALL">전체 계정 (${allTweets.length})</option>` +
             list.map(([a, n]) => `<option value="${esc(a)}">👤 ${esc(a)} (${n})</option>`).join('');
@@ -1912,7 +1909,7 @@
         }
         $('addText').value = ''; addPhotoData = []; addLinked = null; $('addLinkInput').value = ''; $('addLinkMsg').innerText = ''; renderAddPreview();
         initAddForm();
-        msg(`✅ 추가했어요! (${account} · ${fmtDate(t.created_at)}) '계정별' 탭이나 검색에서 볼 수 있어요. 이어서 다른 트윗을 추가해도 돼요.`);
+        msg(`✅ 추가했어요! (${account} · ${fmtDate(t.created_at)}) 통합 검색의 계정 선택에서 볼 수 있어요. 이어서 다른 트윗을 추가해도 돼요.`);
     }
 
     function createTweetCard(t, highlight) {
