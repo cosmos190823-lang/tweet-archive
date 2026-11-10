@@ -2,6 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
+    <meta name="theme-color" content="#ffffff">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="referrer" content="no-referrer">
     <title>트위터 아카이브 통합 관리기</title>
@@ -21,106 +22,126 @@
         window.FIREBASE_CONFIG = firebaseConfig;
     </script>
     <style>
-        :root { --bg-color: #000; --card-bg: #15202b; --accent: #1d9bf0; --border: #38444d; text-color: #fff; }
-        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg-color); color: #fff; padding: 16px; max-width: 750px; margin: 0 auto; }
-        
-        .nav-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
-        .tab-btn { flex: 1 1 auto; padding: 10px 14px; background: #16181c; color: #71767b; border: 1px solid #333; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 13px; }
-        .tab-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+        :root { color-scheme: light; --bg: #fff; --text: #0f1419; --sub: #536471; --border: #eff3f4; --line: #cfd9de; --hover: #f7f9f9; --accent: #1d9bf0; --accent-dark: #1a8cd8; --accent-weak: #e8f5fd; --danger: #f4212e; }
+        * { -webkit-tap-highlight-color: transparent; }
+        body { font-family: "TwitterChirp", -apple-system, BlinkMacSystemFont, "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; background: var(--bg); color: var(--text); padding: 0 12px 60px; max-width: 680px; margin: 0 auto; }
+        hr { border: none; border-top: 1px solid var(--border); }
+        a { color: var(--accent); }
 
-        .section-box { background: #16181c; padding: 16px; border-radius: 12px; margin-bottom: 16px; border: 1px solid #222; }
-        input[type="text"], input[type="number"], select { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #333; background: #000; color: #fff; font-size: 14px; box-sizing: border-box; margin-bottom: 8px; }
-        
-        .filter-options { display: flex; gap: 16px; margin-bottom: 10px; font-size: 13px; color: #ccc; flex-wrap: wrap; }
+        .nav-tabs { display: flex; gap: 0; overflow-x: auto; margin: 0 -12px 12px; padding: 0 4px; position: sticky; top: 0; z-index: 50; background: rgba(255,255,255,0.88); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); scrollbar-width: none; }
+        .nav-tabs::-webkit-scrollbar { display: none; }
+        .tab-btn { flex: 0 0 auto; padding: 14px 14px 11px; background: none; color: var(--sub); border: none; border-bottom: 4px solid transparent; font-weight: 700; cursor: pointer; font-size: 14px; white-space: nowrap; }
+        .tab-btn:hover { background: var(--hover); }
+        .tab-btn.active { color: var(--text); border-bottom-color: var(--accent); }
+
+        .section-box { background: var(--hover); padding: 16px; border-radius: 16px; margin-bottom: 12px; border: 1px solid var(--border); }
+        .section-box h4 { margin: 0 0 8px; font-size: 16px; }
+        input[type="text"], input[type="number"], input[type="datetime-local"], select { width: 100%; padding: 10px 14px; border-radius: 12px; border: 1px solid var(--line); background: #fff; color: var(--text); font-size: 15px; box-sizing: border-box; margin-bottom: 8px; font-family: inherit; }
+        input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+
+        .filter-options { display: flex; gap: 16px; margin-bottom: 10px; font-size: 14px; color: var(--sub); flex-wrap: wrap; }
         .filter-options label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
 
-        .btn { padding: 10px 16px; border-radius: 8px; border: none; background: var(--accent); color: #fff; font-weight: bold; cursor: pointer; font-size: 13px; }
-        .btn:disabled { background: #333; color: #666; cursor: not-allowed; }
-        .btn-danger { background: #f4212e; }
-        .btn-secondary { background: #273340; color: #fff; }
-        .btn-bookmark { background: #ffd700; color: #000; }
+        .btn { padding: 9px 18px; border-radius: 9999px; border: 1px solid transparent; background: var(--accent); color: #fff; font-weight: 700; cursor: pointer; font-size: 14px; }
+        .btn:hover { background: var(--accent-dark); }
+        .btn:disabled { background: #8ecdf7; color: #fff; cursor: not-allowed; }
+        .btn-danger { background: #fff; color: var(--danger); border-color: #f4b8bd; }
+        .btn-danger:hover { background: #fdecee; }
+        .btn-secondary { background: #fff; color: var(--text); border-color: var(--line); }
+        .btn-secondary:hover { background: var(--hover); }
+        .btn-bookmark { background: #fff; color: var(--sub); border-color: var(--line); }
+        .btn-bookmark:hover { background: var(--accent-weak); color: var(--accent); }
+        .btn-bookmark.on { background: var(--accent-weak); color: var(--accent); border-color: var(--accent); }
 
-        .batch-bar { background: #1e2732; padding: 12px; border-radius: 8px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; border: 1px solid var(--accent); }
+        .batch-bar { background: var(--accent-weak); padding: 10px 14px; border-radius: 16px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; border: 1px solid var(--accent); gap: 8px; flex-wrap: wrap; }
 
-        .pagination { display: flex; justify-content: center; align-items: center; gap: 8px; margin: 16px 0; flex-wrap: wrap; }
-        .page-info { font-size: 14px; font-weight: bold; color: #8b98a5; }
+        .pagination { display: flex; justify-content: center; align-items: center; gap: 8px; margin: 14px 0; flex-wrap: wrap; }
+        .page-info { font-size: 14px; font-weight: 700; color: var(--sub); }
         .page-jump-box { display: flex; align-items: center; gap: 4px; }
         .page-jump-input { width: 60px !important; margin-bottom: 0 !important; padding: 6px !important; text-align: center; }
 
-        .tweet-card { background: var(--card-bg); padding: 16px; border-radius: 12px; margin-top: 12px; border: 1px solid var(--border); line-height: 1.5; font-size: 15px; position: relative; cursor: pointer; transition: background 0.2s, border-color 0.2s; }
-        .tweet-card:hover { border-color: var(--accent); }
-        .tweet-card.selected { background: #192734; border: 2px solid var(--accent); }
+        #tweetResults { border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+        #tweetResults:empty { border: none; }
+        .tweet-card { display: flex; gap: 12px; background: #fff; padding: 12px 16px; border: none; border-bottom: 1px solid var(--border); border-radius: 0; margin-top: 0; line-height: 1.4; font-size: 15px; position: relative; cursor: pointer; transition: background 0.15s; }
+        .tweet-card:hover { background: var(--hover); }
+        .tweet-card.selected { background: var(--accent-weak); box-shadow: inset 3px 0 0 var(--accent); }
+        .tw-avatar { flex: 0 0 40px; width: 40px; height: 40px; border-radius: 50%; color: #fff; font-weight: 700; display: flex; align-items: center; justify-content: center; font-size: 17px; user-select: none; }
+        .tw-main { flex: 1; min-width: 0; }
 
-        .tweet-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-        .tweet-meta { font-size: 12px; color: #8b98a5; }
-        .tweet-text { white-space: pre-wrap; word-break: break-all; margin-bottom: 10px; }
-        .highlight { background: #ffd700; color: #000; font-weight: bold; }
-        
-        .tweet-media-container { display: grid; gap: 8px; margin: 10px 0; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
-        .tweet-media-img { width: 100%; max-height: 350px; object-fit: cover; border-radius: 8px; border: 1px solid #273340; }
+        .tweet-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2px; gap: 8px; }
+        .tw-name { font-weight: 700; color: var(--text); font-size: 15px; }
+        .tweet-meta { font-size: 14px; color: var(--sub); }
+        .tweet-text { white-space: pre-wrap; overflow-wrap: anywhere; margin-bottom: 8px; font-size: 15px; }
+        .highlight { background: #fff0a8; color: #000; font-weight: bold; border-radius: 3px; }
 
-        /* 인용 원트 스타일 */
-        .quote-embed-box { background: #0e161e; border: 1px solid #273340; border-radius: 8px; padding: 12px; margin-top: 10px; font-size: 13.5px; line-height: 1.4; }
-        .quote-embed-author { font-weight: bold; color: var(--accent); margin-bottom: 4px; font-size: 12px; }
-        .quote-loading { color: #8b98a5; font-size: 12px; }
-        .quote-text { white-space: pre-wrap; word-break: break-all; color: #d9d9d9; margin-top: 4px; }
-        .quote-embed-author a { color: var(--accent); text-decoration: none; }
-        .quote-photos { display: grid; gap: 6px; margin-top: 8px; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
-        .quote-photos img { width: 100%; max-height: 220px; object-fit: cover; border-radius: 6px; border: 1px solid #273340; }
-        .quote-retry { margin-left: 8px; padding: 2px 8px; font-size: 11px; }
+        .tweet-media-container { display: grid; gap: 2px; margin: 10px 0; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); border-radius: 16px; overflow: hidden; border: 1px solid var(--border); }
+        .tweet-media-img { width: 100%; max-height: 350px; object-fit: cover; border: none; border-radius: 0; display: block; }
 
-        .card-actions { margin-top: 12px; padding-top: 10px; border-top: 1px solid #273340; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
-        .badge { background: #1e97e1; color: #fff; font-size: 11px; padding: 2px 8px; border-radius: 10px; }
+        /* 인용 원트 */
+        .quote-embed-box { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 12px; margin-top: 10px; font-size: 14px; line-height: 1.4; }
+        .quote-embed-box:hover { background: var(--hover); }
+        .quote-embed-author { font-weight: 700; color: var(--sub); margin-bottom: 4px; font-size: 13px; }
+        .quote-embed-author a { color: var(--text); text-decoration: none; }
+        .quote-embed-author a:hover { text-decoration: underline; }
+        .quote-loading { color: var(--sub); font-size: 13px; }
+        .quote-text { white-space: pre-wrap; overflow-wrap: anywhere; color: var(--text); margin-top: 4px; }
+        .quote-photos { display: grid; gap: 4px; margin-top: 8px; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); border-radius: 12px; overflow: hidden; }
+        .quote-photos img { width: 100%; max-height: 220px; object-fit: cover; border: none; border-radius: 0; }
+        .quote-retry { margin-left: 8px; padding: 2px 10px; font-size: 12px; }
 
-        .thread-group { background: #0e161e; border: 1px solid #273340; padding: 12px; border-radius: 12px; margin-top: 16px; }
-        .thread-title { font-weight: bold; color: var(--accent); font-size: 14px; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+        .card-actions { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+        .badge { background: var(--accent); color: #fff; font-size: 11px; padding: 2px 8px; border-radius: 10px; }
+
+        .thread-group { background: #fff; border-bottom: 1px solid var(--border); margin: 0; }
+        .thread-title { font-weight: 700; color: var(--accent); font-size: 13px; padding: 10px 16px 2px; display: flex; align-items: center; gap: 6px; cursor: pointer; }
+        .thread-title:hover { text-decoration: underline; }
 
         .cat-chip-group { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
-        .cat-chip { background: #273340; color: #fff; padding: 6px 12px; border-radius: 16px; font-size: 13px; display: flex; align-items: center; gap: 6px; }
-    
+        .cat-chip { background: #fff; color: var(--text); border: 1px solid var(--line); padding: 6px 12px; border-radius: 9999px; font-size: 13px; display: flex; align-items: center; gap: 6px; }
+
         /* 로그인/로딩 화면 */
-        #gate { position: fixed; inset: 0; background: #000; z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px; }
-        .gate-card { background: #16181c; border: 1px solid #222; border-radius: 16px; padding: 28px 24px; max-width: 420px; width: 100%; text-align: center; }
+        #gate { position: fixed; inset: 0; background: #fff; z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .gate-card { background: #fff; border: 1px solid var(--border); border-radius: 20px; padding: 28px 24px; max-width: 420px; width: 100%; text-align: center; box-shadow: 0 4px 24px rgba(0,0,0,0.08); }
         .gate-card h2 { margin: 0 0 12px; font-size: 20px; }
-        #gateMsg { margin-top: 14px; font-size: 14px; color: #c9d1d9; line-height: 1.6; word-break: keep-all; }
-        .gate-bar { height: 8px; background: #273340; border-radius: 4px; overflow: hidden; margin-top: 14px; }
+        #gateMsg { margin-top: 14px; font-size: 14px; color: var(--sub); line-height: 1.6; word-break: keep-all; }
+        .gate-bar { height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; margin-top: 14px; }
         #gateBarFill { height: 100%; width: 0; background: var(--accent); transition: width 0.2s; }
-        .topbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12px; color: #8b98a5; margin-bottom: 12px; }
+        .topbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12px; color: var(--sub); padding: 10px 0 4px; }
         .topbar .spacer { flex: 1; }
-        .topbar .btn { padding: 5px 10px; font-size: 12px; }
-        .drop-zone { border: 2px dashed #38444d; border-radius: 12px; padding: 20px; text-align: center; color: #ccc; font-size: 14px; }
-        .drop-zone.over { border-color: var(--accent); background: #192734; }
-        #importMsg { font-size: 13px; color: #8b98a5; margin-top: 10px; line-height: 1.5; word-break: keep-all; }
-        .small-note { font-size: 12px; color: #8b98a5; margin: 6px 0; line-height: 1.5; }
-        textarea.paste-box { width: 100%; height: 70px; background: #000; color: #fff; border: 1px solid #333; border-radius: 8px; padding: 8px; box-sizing: border-box; font-size: 12px; }
+        .topbar .btn { padding: 5px 12px; font-size: 12px; }
+        .drop-zone { border: 2px dashed var(--line); border-radius: 16px; padding: 20px; text-align: center; color: var(--sub); font-size: 14px; background: #fff; }
+        .drop-zone.over { border-color: var(--accent); background: var(--accent-weak); }
+        #importMsg { font-size: 13px; color: var(--sub); margin-top: 10px; line-height: 1.5; word-break: keep-all; }
+        .small-note { font-size: 12.5px; color: var(--sub); margin: 6px 0; line-height: 1.5; }
+        textarea.paste-box { width: 100%; height: 70px; background: #fff; color: var(--text); border: 1px solid var(--line); border-radius: 12px; padding: 8px; box-sizing: border-box; font-size: 12px; }
 
         /* 정렬 / 타래 / 영상 / 분류 */
         .sort-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
         .sort-row select { width: auto; flex: 0 0 auto; margin-bottom: 0; }
         .result-entry { margin-top: 0; }
-        .thread-continue { margin: 6px 0 0 10px; padding-left: 12px; border-left: 3px solid var(--accent); }
-        .thread-prev { margin: 6px 0 0 10px; padding-left: 12px; border-left: 3px dashed #38444d; }
-        .thread-label { font-size: 12px; color: var(--accent); font-weight: bold; margin-top: 10px; }
-        .thread-toggle { margin-top: 12px; width: 100%; font-size: 12px; padding: 6px; }
-        .tweet-media-video { width: 100%; max-height: 420px; border-radius: 8px; border: 1px solid #273340; background: #000; display: block; object-fit: contain; }
-        .video-slot { min-width: 0; }
-        .video-msg { font-size: 12px; color: #8b98a5; margin-top: 6px; line-height: 1.5; }
-        .quote-photos video { width: 100%; max-height: 260px; border-radius: 6px; border: 1px solid #273340; background: #000; object-fit: contain; }
-        .cat-pick { display: flex; align-items: center; gap: 6px; }
-        .cat-label { font-size: 12px; color: #8b98a5; }
-        select.cat-select-inline { width: auto; max-width: 170px; margin: 0; padding: 4px 8px; font-size: 12px; }
-        .cat-chip small { color: #8b98a5; }
-        .edit-area { width: 100%; min-height: 100px; box-sizing: border-box; background: #000; color: #fff; border: 1px solid #38444d; border-radius: 8px; padding: 8px; font-size: 15px; font-family: inherit; line-height: 1.5; resize: vertical; }
-        .edit-actions { display: flex; gap: 8px; margin-top: 6px; }
-        .edit-actions .btn { padding: 6px 14px; font-size: 13px; }
-        .rt-link-row { display: flex; gap: 6px; margin-top: 8px; }
-        .rt-link-row input { flex: 1; margin: 0; padding: 6px 8px; font-size: 12px; min-width: 0; }
-        .rt-link-row .btn { padding: 4px 12px; font-size: 12px; flex: 0 0 auto; }
-        .thread-label-btn { width: 100%; text-align: left; font-size: 12px; padding: 5px 8px; margin-top: 8px; }
+        .thread-continue { margin: 0 0 0 20px; padding-left: 0; border-left: 2px solid var(--line); }
+        .thread-prev { margin: 0 0 0 20px; padding-left: 0; border-left: 2px dashed var(--line); }
+        .thread-label { font-size: 12px; color: var(--accent); font-weight: bold; margin: 10px 16px 0; }
+        .thread-toggle { margin: 10px 16px 0; width: calc(100% - 32px); font-size: 12px; padding: 6px; }
+        .thread-label-btn { width: calc(100% - 16px); margin: 6px 8px; text-align: left; font-size: 12px; padding: 5px 12px; }
         .thread-continue.collapsed > .tweet-card { display: none; }
         .thread-group.collapsed > .tweet-card ~ .tweet-card { display: none; }
-        .thread-title { cursor: pointer; }
-        .chip-btn { background: none; border: none; color: #fff; cursor: pointer; padding: 0 2px; font-size: 13px; }
+        .tweet-media-video { width: 100%; max-height: 420px; border-radius: 0; border: none; background: #000; display: block; object-fit: contain; }
+        .video-slot { min-width: 0; }
+        .video-msg { font-size: 12.5px; color: var(--sub); margin-top: 6px; line-height: 1.5; padding: 0 2px; }
+        .quote-photos video { width: 100%; max-height: 260px; border-radius: 0; border: none; background: #000; object-fit: contain; }
+        .cat-pick { display: flex; align-items: center; gap: 6px; }
+        .cat-label { font-size: 12.5px; color: var(--sub); }
+        select.cat-select-inline { width: auto; max-width: 170px; margin: 0; padding: 4px 10px; font-size: 13px; border-radius: 9999px; }
+        .cat-chip small { color: var(--sub); }
+        .edit-area { width: 100%; min-height: 100px; box-sizing: border-box; background: #fff; color: var(--text); border: 1px solid var(--line); border-radius: 12px; padding: 10px; font-size: 15px; font-family: inherit; line-height: 1.5; resize: vertical; }
+        .edit-actions { display: flex; gap: 8px; margin-top: 6px; }
+        .edit-actions .btn { padding: 6px 16px; font-size: 13px; }
+        .rt-link-row { display: flex; gap: 6px; margin-top: 8px; }
+        .rt-link-row input { flex: 1; margin: 0; padding: 6px 10px; font-size: 13px; min-width: 0; }
+        .rt-link-row .btn { padding: 4px 14px; font-size: 13px; flex: 0 0 auto; }
+        .chip-btn { background: none; border: none; color: var(--text); cursor: pointer; padding: 0 2px; font-size: 13px; }
+    
     </style>
 </head>
 <body>
@@ -194,11 +215,17 @@
             </select>
         </div>
         <button class="btn" style="width:100%; margin-bottom:8px;" onclick="runListView()">검색</button>
+        <div id="bookmarkTools" style="display:none;">
+            <button class="btn btn-secondary" style="width:100%; margin-bottom:10px;" onclick="randomBookmarks()">🎲 북마크 랜덤 50개 (누를 때마다 새로 뽑아요)</button>
+            <div class="small-note" style="margin:6px 0 4px;">📥 북마크 파일 올리기 (JSON · CSV · TXT 등, 여러 개 가능) — 올린 트윗은 이 북마크 탭에 들어가요</div>
+            <input type="file" id="bookmarkFileInput" accept=".json,.js,.csv,.tsv,.txt,.html,.htm" multiple onchange="importBookmarkFiles(this.files); this.value='';">
+            <div id="bookmarkMsg" class="small-note"></div>
+        </div>
         <div class="small-note" id="listTabNote" style="margin-bottom:0;"></div>
     </div>
 
     <div id="tab-random" class="section-box" style="display:none;">
-        <label style="font-size:13px; color:#ccc; margin-bottom:6px; display:block;">추출할 카테고리 대상:</label>
+        <label style="font-size:13px; color:var(--sub); margin-bottom:6px; display:block;">추출할 카테고리 대상:</label>
         <select id="randomCatSelect" onchange="generateRandomTweets()"></select>
         <div class="filter-options" style="margin-top:6px; margin-bottom:8px;">
             <label><input type="checkbox" id="randomOnlyMedia" onchange="generateRandomTweets()"> 사진·영상 첨부 트윗 중에서만 뽑기</label>
@@ -214,7 +241,7 @@
             <button class="btn" style="flex:0 0 auto;" onclick="loadTweetFromLink()">불러오기</button>
         </div>
         <div id="addLinkMsg" class="small-note"></div>
-        <hr style="border-color:#333; margin:10px 0;">
+        <hr style="border-color:var(--line); margin:10px 0;">
         <div class="small-note" style="margin:6px 0 2px;">계정</div>
         <select id="addAccountSelect" onchange="onAddAccountChange()"></select>
         <input type="text" id="addAccountNew" placeholder="새 계정 아이디" style="display:none;">
@@ -242,13 +269,24 @@
         </div>
         <div id="importMsg"></div>
         <p class="small-note">이미 저장된 트윗은 자동으로 건너뛰고 <b>새 트윗만</b> 클라우드에 추가해요. (영상 주소나 RT 원트 번호가 없던 옛 트윗은 그 정보만 보강해요.) 같은 파일을 여러 번 올려도 안전해요. 올린 트윗은 로그인한 모든 기기에서 보여요.</p>
-        <hr style="border-color:#333; margin:15px 0;">
+        <hr style="border-color:var(--line); margin:15px 0;">
 
         <h4>🎞️ 영상·움짤 파일 연결 (선택)</h4>
         <p class="small-note">비공개 계정 영상처럼 인터넷 주소로 재생이 안 될 때 쓰세요. 아카이브 안의 <b>data/tweets_media</b> 폴더(또는 아카이브 폴더 전체)를 선택하면, 내가 올린 영상·움짤을 <b>내 기기의 파일</b>로 재생해요. 파일은 어디에도 업로드되지 않고, 이 창을 닫으면 연결이 풀려서 접속할 때마다 다시 선택해야 해요. (컴퓨터 브라우저 권장)</p>
         <input type="file" id="mediaFolderInput" webkitdirectory multiple onchange="linkMediaFolder(this.files); this.value='';">
         <div id="mediaFolderMsg" class="small-note"></div>
-        <hr style="border-color:#333; margin:15px 0;">
+        <hr style="border-color:var(--line); margin:15px 0;">
+
+        <h4>📦 사진 백업 (내 기기로 내려받기)</h4>
+        <p class="small-note">트윗을 지우기 <b>전에</b> 저장된 모든 트윗의 사진을 ZIP 파일로 내려받아요. (인용·답글 대상으로 이미 불러온 남의 사진도 포함) 사진은 원본 크기로 받고, 용량이 크면 여러 개 ZIP으로 나뉘어요. <b>컴퓨터에서 하시길 권장해요</b>(폰은 메모리가 부족할 수 있어요). 여러 파일 내려받기 허용 창이 뜨면 "허용"을 눌러 주세요.</p>
+        <label style="font-size:13px;"><input type="checkbox" id="backupVideo"> 영상·움짤 파일도 포함 (용량 아주 커질 수 있어요)</label>
+        <div style="display:flex; gap:8px; margin:8px 0;">
+            <button class="btn" style="flex:1;" onclick="startPhotoBackup()">📦 백업 시작</button>
+            <button class="btn btn-secondary" style="flex:0 0 auto;" onclick="backupCancel = true;">중지</button>
+        </div>
+        <button class="btn btn-secondary" style="width:100%; font-size:13px;" onclick="exportPhotoUrls()">🔗 사진 주소 목록만 내보내기 (다운로드 프로그램용)</button>
+        <div id="backupMsg" class="small-note" style="margin-top:8px;"></div>
+        <hr style="border-color:var(--line); margin:15px 0;">
 
         <h4>☁️ 동기화</h4>
         <p class="small-note">다른 기기에서 바꾼 분류나 새로 올린 트윗이 안 보일 때 눌러 주세요.</p>
@@ -256,7 +294,7 @@
             <button class="btn" onclick="syncNow()">지금 동기화</button>
             <button class="btn btn-secondary" onclick="resetLocalCache()">이 기기 저장본 지우고 다시 받기</button>
         </div>
-        <hr style="border-color:#333; margin:15px 0;">
+        <hr style="border-color:var(--line); margin:15px 0;">
 
         <h4>🏷️ 카테고리 관리</h4>
         <div style="display:flex; gap:8px;">
@@ -265,7 +303,7 @@
         </div>
         <p class="small-note">✏️로 이름을 바꾸고 🗑️로 지울 수 있어요. 지운 카테고리의 트윗은 '미분류'로 옮겨져요. (숫자는 트윗 개수)</p>
         <div class="cat-chip-group" id="catChipList"></div>
-        <hr style="border-color:#333; margin:15px 0;">
+        <hr style="border-color:var(--line); margin:15px 0;">
 
         <h4>🗂️ 예전 기록 가져오기 (선택)</h4>
         <p class="small-note" id="legacyInfo"></p>
@@ -283,7 +321,7 @@
         </div>
     </div>
 
-    <div id="statusInfo" style="font-size:13px; color:#8b98a5; margin-bottom:10px;"></div>
+    <div id="statusInfo" style="font-size:13px; color:var(--sub); margin-bottom:10px;"></div>
     
     <div id="pageSelectControl" style="display:none; margin-bottom:8px;">
         <button class="btn btn-secondary" style="width:100%; font-size:13px;" onclick="toggleSelectCurrentPage()">현재 페이지 전체 선택 / 해제</button>
@@ -850,6 +888,7 @@
         $('tab-list').style.display = LIST_TABS.includes(tabName) ? 'block' : 'none';
         $('listSearchInput').value = '';
         $('listCategorySelect').value = 'ALL';
+        $('bookmarkTools').style.display = (tabName === 'bookmark') ? '' : 'none';
         $('listTabNote').innerText = TAB_NOTES[tabName] || '';
         document.querySelectorAll('.tab-btn').forEach((btn, idx) => {
             btn.classList.toggle('active', ['search', 'random', 'rt', 'mention', 'thread', 'bookmark', 'add', 'data'][idx] === tabName);
@@ -884,8 +923,9 @@
     }
     function hasMedia(t) { return getMediaList(t).length > 0; }
 
-    function isRT(t) { return t.full_text && (t.full_text.startsWith('RT @') || t.retweeted_status); }
+    function isRT(t) { return !t.bm && t.full_text && (t.full_text.startsWith('RT @') || t.retweeted_status); }
     function isExternalMention(t) {
+        if (t.bm) return false;
         if (!t.full_text || !t.full_text.startsWith('@')) return false;
         if (t.in_reply_to_user_id_str && t.in_reply_to_user_id_str === (t.user && t.user.id_str)) return false;
         return true;
@@ -1110,7 +1150,7 @@
         }
 
         if (!currentEntries.length) {
-            $('tweetResults').innerHTML = `<div style="color:#8b98a5; padding:20px;">${currentMode === 'thread' ? '연결된 타래가 없습니다.' : '검색 결과가 없습니다.'}</div>`;
+            $('tweetResults').innerHTML = `<div style="color:var(--sub); padding:20px;">${currentMode === 'thread' ? '연결된 타래가 없습니다.' : '검색 결과가 없습니다.'}</div>`;
             togglePagination(false);
             return;
         }
@@ -1262,7 +1302,7 @@
         const on = !bookmarkSet.has(id);
         if (on) bookmarkSet.add(id); else bookmarkSet.delete(id);
         cloudWrite(() => cloud.setState([{ k: 'bm', id, v: on }]));
-        document.querySelectorAll(`.bm-btn[data-id="${id}"]`).forEach(b => { b.innerText = on ? '★ 북마크됨' : '☆ 북마크'; });
+        document.querySelectorAll(`.bm-btn[data-id="${id}"]`).forEach(b => { b.innerText = on ? '★ 북마크됨' : '☆ 북마크'; b.classList.toggle('on', on); });
     }
     function removeFromLists(id) {
         deletedSet.add(id);
@@ -1839,7 +1879,7 @@
     }
     function renderAddPreview() {
         $('addPhotoPreview').innerHTML = addPhotoData.map((u, i) =>
-            `<div style="position:relative;"><img src="${u}" style="height:80px; border-radius:6px; border:1px solid #38444d;"><button class="btn btn-danger" style="position:absolute; top:2px; right:2px; padding:0 6px; font-size:11px;" onclick="removeAddPhoto(${i})">✕</button></div>`).join('');
+            `<div style="position:relative;"><img src="${u}" style="height:80px; border-radius:6px; border:1px solid var(--line);"><button class="btn btn-danger" style="position:absolute; top:2px; right:2px; padding:0 6px; font-size:11px;" onclick="removeAddPhoto(${i})">✕</button></div>`).join('');
     }
     function loadTweetFromLink() {
         const msg = t => { $('addLinkMsg').innerText = t; };
@@ -1912,6 +1952,346 @@
         msg(`✅ 추가했어요! (${account} · ${fmtDate(t.created_at)}) 통합 검색의 계정 선택에서 볼 수 있어요. 이어서 다른 트윗을 추가해도 돼요.`);
     }
 
+
+    /* ---------- 사진 백업 (ZIP으로 내 기기에 내려받기) ---------- */
+    let backupRunning = false, backupCancel = false;
+    function safeName(x) { return String(x).replace(/[\\/:*?"<>|\n\r]/g, '_').slice(0, 60) || '_'; }
+    function origUrl(u) { return (/pbs\.twimg\.com\/media\//.test(u) && !u.includes('?')) ? u + '?name=orig' : u; }
+    function collectBackupItems(withVideo) {
+        const items = [], seen = new Set();
+        const add = (url, folder, base, tid, src) => {
+            if (!url || seen.has(url)) return;
+            seen.add(url);
+            items.push({ url, folder, base, tid, src });
+        };
+        allTweets.forEach(t => {
+            const acct = safeName(accountOf(t)), d = fmtDate(t.created_at);
+            getMediaList(t).forEach((m, i) => {
+                const n = `${d}_${t.id_str}_${i + 1}`;
+                if (m.type === 'video' || m.type === 'animated_gif') {
+                    add(m.media_url_https, `${acct}/영상썸네일`, n, t.id_str, acct);
+                    if (withVideo && m.video_url) add(m.video_url, `${acct}/영상`, n, t.id_str, acct);
+                } else add(m.media_url_https, acct, n, t.id_str, acct);
+            });
+        });
+        Object.keys(quoteCache).forEach(id => {
+            const q = quoteCache[id] || {};
+            (q.photos || []).forEach((u, i) => add(u, '남의사진(인용·답글)', `${safeName(q.handle || 'unknown')}_${id}_${i + 1}`, id, '@' + (q.handle || '')));
+            if (withVideo) (q.videos || []).forEach((v, i) => add(v.url, '남의사진(인용·답글)/영상', `${safeName(q.handle || 'unknown')}_${id}_v${i + 1}`, id, '@' + (q.handle || '')));
+        });
+        return items;
+    }
+    function saveBlob(blob, name) {
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob); a.download = name;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(a.href), 120000);
+    }
+    function exportPhotoUrls() {
+        const items = collectBackupItems($('backupVideo').checked);
+        if (!items.length) { $('backupMsg').innerText = '내보낼 사진이 없어요.'; return; }
+        const txt = items.map(i => origUrl(i.url)).filter(u => /^https?:/.test(u)).join('\n');
+        saveBlob(new Blob([txt], { type: 'text/plain;charset=utf-8' }), '사진주소목록.txt');
+        $('backupMsg').innerText = `✅ 사진 주소 ${items.length}개를 목록 파일로 내려받았어요. (한 줄에 주소 하나 · 데이터 형식 사진은 제외)`;
+    }
+    function loadJsZip() {
+        if (window.JSZip) return Promise.resolve();
+        return new Promise((resolve, reject) => {
+            const sc = document.createElement('script');
+            sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+            sc.onload = resolve; sc.onerror = () => reject(new Error('ZIP 도구를 불러오지 못했어요'));
+            document.head.appendChild(sc);
+        });
+    }
+    async function startPhotoBackup() {
+        if (backupRunning) return;
+        const msg = t => { $('backupMsg').innerText = t; };
+        const items = collectBackupItems($('backupVideo').checked);
+        if (!items.length) { msg('백업할 사진이 없어요.'); return; }
+        if (!confirm(`사진·파일 ${items.length}개를 내려받아 ZIP으로 저장해요. 시작할까요?`)) return;
+        backupRunning = true; backupCancel = false;
+        try {
+            msg('ZIP 도구 불러오는 중…');
+            await loadJsZip();
+            let zip = new JSZip(), bytes = 0, part = 1, rows = [], fails = [], done = 0, tried = 0, okCount = 0;
+            const q = s => '"' + String(s).replace(/"/g, '""') + '"';
+            const flush = async () => {
+                if (!rows.length) return;
+                zip.file(`목록_파트${part}.csv`, '\ufeff파일,출처,트윗번호,원본주소\n' + rows.join('\n'));
+                msg(`ZIP 파트 ${part} 만드는 중…`);
+                const blob = await zip.generateAsync({ type: 'blob', compression: 'STORE' });
+                saveBlob(blob, `트윗사진백업_${String(part).padStart(2, '0')}.zip`);
+                part++; zip = new JSZip(); bytes = 0; rows = [];
+                await new Promise(r => setTimeout(r, 800));
+            };
+            const PART_LIMIT = 300 * 1024 * 1024;
+            for (let i = 0; i < items.length && !backupCancel; i += 6) {
+                const batch = items.slice(i, i + 6);
+                const res = await Promise.all(batch.map(async it => {
+                    for (let a = 0; a < 2; a++) {
+                        try {
+                            const r = await fetch(origUrl(it.url));
+                            if (!r.ok) throw new Error(r.status);
+                            return { it, blob: await r.blob() };
+                        } catch (e) { /* 한 번 더 */ }
+                    }
+                    return { it, blob: null };
+                }));
+                for (const r of res) {
+                    tried++; done++;
+                    if (!r.blob) { fails.push(r.it.url); continue; }
+                    const ty = r.blob.type || '';
+                    const ext = ty.includes('png') ? 'png' : ty.includes('webp') ? 'webp' : ty.includes('gif') ? 'gif' : ty.includes('mp4') ? 'mp4' : ty.includes('video') ? 'mp4' : 'jpg';
+                    const path = `${r.it.folder}/${r.it.base}.${ext}`;
+                    zip.file(path, r.blob);
+                    bytes += r.blob.size; okCount++;
+                    rows.push([q(path), q(r.it.src), q(r.it.tid), q(r.it.url.startsWith('data:') ? '(앱에 직접 올린 사진)' : r.it.url)].join(','));
+                }
+                // 처음 12개가 전부 실패하면 브라우저가 막고 있는 것
+                if (tried >= 12 && okCount === 0) {
+                    msg('⚠️ 사진을 하나도 내려받지 못했어요. 브라우저가 다른 사이트의 사진 받기를 막고 있는 것 같아요. 위의 "🔗 사진 주소 목록만 내보내기"로 주소 목록을 받아서 다운로드 프로그램(예: 크롬 확장 DownThemAll, 또는 gallery-dl/aria2)에 넣어 받아 주세요.');
+                    backupRunning = false; return;
+                }
+                msg(`내려받는 중… ${done} / ${items.length} (실패 ${fails.length}) · 현재 파트 ${(bytes / 1048576).toFixed(0)}MB`);
+                if (bytes >= PART_LIMIT) await flush();
+            }
+            if (fails.length) { zip.file('실패목록.txt', fails.join('\n')); rows.push(['"실패목록.txt"', '""', '""', '""'].join(',')); }
+            await flush();
+            msg(backupCancel
+                ? `⏹ 중지했어요. (${okCount}개 저장됨 · 이미 내려받은 ZIP은 그대로 쓸 수 있어요)`
+                : `✅ 끝났어요! ${okCount}개 저장, 실패 ${fails.length}개. ZIP ${part - 1}개를 내려받았어요.${fails.length ? ' 실패한 주소는 마지막 ZIP의 실패목록.txt에 있어요.' : ''} 트윗을 지우기 전에 ZIP을 열어서 사진이 잘 들어 있는지 꼭 확인하세요.`);
+        } catch (e) {
+            msg('⚠️ 백업 중 문제가 생겼어요: ' + (e && e.message ? e.message : e));
+        }
+        backupRunning = false;
+    }
+
+
+    /* ---------- 북마크 파일 올리기 / 랜덤 50개 ---------- */
+    function parseAnyDate(v) {
+        if (v === undefined || v === null || v === '') return null;
+        if (typeof v === 'number' || /^\d{10,13}$/.test(String(v))) { const n = Number(v); const d = new Date(n < 1e12 ? n * 1000 : n); return isNaN(d.getTime()) ? null : d; }
+        const m = String(v).match(/^\w{3} (\w{3}) (\d{1,2}) (\d{2}):(\d{2}):(\d{2}) ([+-])(\d{2})(\d{2}) (\d{4})$/);
+        if (m) {
+            const months = { Jan: 0, Feb: 1, Mar: 2, Apr: 3, May: 4, Jun: 5, Jul: 6, Aug: 7, Sep: 8, Oct: 9, Nov: 10, Dec: 11 };
+            const off = (m[6] === '-' ? -1 : 1) * (parseInt(m[7], 10) * 60 + parseInt(m[8], 10));
+            return new Date(Date.UTC(+m[9], months[m[1]], +m[2], +m[3], +m[4], +m[5]) - off * 60000);
+        }
+        const d = new Date(v);
+        return isNaN(d.getTime()) ? null : d;
+    }
+    function snowflakeToDate(id) {
+        try { const d = new Date(Number((BigInt(id) >> 22n) + 1288834974657n)); return isNaN(d.getTime()) ? null : d; } catch (e) { return null; }
+    }
+    function bmPick(o, keys) {
+        if (!o) return undefined;
+        for (const k of keys) { if (o[k] !== undefined && o[k] !== null && o[k] !== '') return o[k]; }
+        return undefined;
+    }
+    function bmMedia(arr) {
+        if (typeof arr === 'string') arr = arr.split(/[\s,|;]+/).filter(Boolean);
+        if (!Array.isArray(arr)) return [];
+        const out = [];
+        arr.forEach(m => {
+            if (typeof m === 'string') {
+                if (!/^https?:\/\//i.test(m)) return;
+                out.push(/\.(mp4|m4v|mov)(\?|$)/i.test(m) ? { type: 'video', url: '', video_url: m } : { type: 'photo', url: m });
+                return;
+            }
+            if (!m || typeof m !== 'object') return;
+            let type = String(m.type || 'photo').toLowerCase();
+            if (type === 'gif') type = 'animated_gif';
+            if (type !== 'video' && type !== 'animated_gif') type = 'photo';
+            let vurl = '';
+            if (type !== 'photo') {
+                vurl = bmPick(m, ['video_url', 'videoUrl']) || '';
+                if (!vurl && m.video_info && m.video_info.variants) vurl = bestVideoUrl(m);
+                if (!vurl && typeof m.url === 'string' && /\.mp4/i.test(m.url)) vurl = m.url;
+            }
+            let url = bmPick(m, ['media_url_https', 'thumbnail', 'thumb', 'preview_image_url', 'original', 'original_url', 'src', 'image', 'url', 'link']) || '';
+            if (type !== 'photo' && /\.mp4/i.test(url)) url = '';
+            const o = { type, url: /^https?:\/\//i.test(url) ? url : '' };
+            if (vurl && /^https?:\/\//i.test(vurl)) o.video_url = vurl;
+            if (o.url || o.video_url) out.push(o);
+        });
+        return out;
+    }
+    // 객체 하나가 트윗처럼 보이면 {id, text, handle, date, media}로 바꿈
+    function bmFromObject(o) {
+        const legacy = o.legacy || {};
+        let id = bmPick(o, ['id_str', 'rest_id', 'tweet_id', 'tweetId', 'tweetID', 'status_id', 'statusId']);
+        let explicit = id !== undefined;
+        if (id === undefined) id = bmPick(legacy, ['id_str']);
+        if (id !== undefined && !explicit) explicit = true;
+        const urlStr = String(bmPick(o, ['url', 'tweet_url', 'tweetUrl', 'link', 'permalink', 'expanded_url']) || '');
+        const um = urlStr.match(/(?:twitter|x)\.com\/([^\/?#]+)\/status(?:es)?\/(\d+)/i);
+        if (id === undefined && um) { id = um[2]; explicit = true; }
+        if (id === undefined && (typeof o.id === 'string' || typeof o.id === 'number')) id = o.id;
+        id = (id !== undefined) ? String(id) : '';
+        if (!/^\d{10,25}$/.test(id)) return null;
+        let text = bmPick(o, ['full_text', 'fullText', 'text', 'content', 'tweet_text', 'tweetText', 'body']);
+        if (text === undefined) text = bmPick(legacy, ['full_text', 'text']);
+        if (typeof text !== 'string') text = undefined;
+        if (text === undefined && !explicit) return null;
+        const ur = o.core && o.core.user_results && o.core.user_results.result;
+        let handle = bmPick(o, ['screen_name', 'screenName', 'username', 'user_screen_name', 'author_screen_name', 'author_handle', 'handle', 'user_name', 'userName']);
+        if (!handle && ur) handle = (ur.legacy && ur.legacy.screen_name) || (ur.core && ur.core.screen_name);
+        if (!handle && o.user && typeof o.user === 'object') handle = o.user.screen_name || o.user.username;
+        if (!handle && o.author && typeof o.author === 'object') handle = o.author.screen_name || o.author.username || o.author.userName;
+        if (!handle && um) handle = um[1] === 'i' ? '' : um[1];
+        const date = bmPick(o, ['created_at', 'createdAt', 'created', 'date', 'time', 'timestamp', 'tweet_time']) || legacy.created_at;
+        const media = bmMedia(bmPick(o.extended_entities || {}, ['media']) || bmPick(legacy.extended_entities || {}, ['media']) || bmPick(o, ['media', 'photos', 'images', 'media_urls', 'mediaUrls', 'image_urls', 'videos']));
+        return { id, text, handle: handle ? String(handle).replace(/^@/, '') : '', date, media };
+    }
+    function bmWalk(node, out, depth) {
+        if (!node || depth > 12) return;
+        if (Array.isArray(node)) { node.forEach(n => bmWalk(n, out, depth + 1)); return; }
+        if (typeof node !== 'object') return;
+        const t = bmFromObject(node);
+        if (t) { out.push(t); return; }
+        Object.keys(node).forEach(k => bmWalk(node[k], out, depth + 1));
+    }
+    function bmParseCsv(text) {
+        const first = text.split(/\r?\n/, 1)[0];
+        const delim = (first.split('\t').length > first.split(',').length) ? '\t' : (first.split(';').length > first.split(',').length ? ';' : ',');
+        const rows = []; let row = [], cur = '', inq = false;
+        for (let i = 0; i < text.length; i++) {
+            const c = text[i];
+            if (inq) {
+                if (c === '"') { if (text[i + 1] === '"') { cur += '"'; i++; } else inq = false; }
+                else cur += c;
+            } else if (c === '"') inq = true;
+            else if (c === delim) { row.push(cur); cur = ''; }
+            else if (c === '\n') { row.push(cur); rows.push(row); row = []; cur = ''; }
+            else if (c !== '\r') cur += c;
+        }
+        if (cur !== '' || row.length) { row.push(cur); rows.push(row); }
+        return rows;
+    }
+    function parseBookmarkText(raw) {
+        let text = String(raw).replace(/^\ufeff/, '');
+        const items = [];
+        const trimmed = text.trim();
+        // 1) JSON (window.YTD.xxx = [...] 같은 앞부분이 붙어 있어도 읽음)
+        const jStart = trimmed.search(/[\[{]/);
+        if (jStart >= 0 && (jStart === 0 || /^window\.|^var |^const |^let |^export /.test(trimmed))) {
+            try { bmWalk(JSON.parse(trimmed.slice(jStart).replace(/;\s*$/, '')), items, 0); } catch (e) { /* JSON이 아님 */ }
+        }
+        // 2) CSV / TSV
+        if (!items.length && !/^\s*[\[{<]/.test(trimmed)) {
+            const rows = bmParseCsv(text);
+            if (rows.length > 1) {
+                const head = rows[0].map(h => h.trim().toLowerCase().replace(/[\s\-]+/g, '_'));
+                rows.slice(1).forEach(r => {
+                    const o = {}; head.forEach((h, i) => { if (h && r[i] !== undefined && r[i] !== '') o[h] = r[i]; });
+                    const t = bmFromObject(o); if (t) items.push(t);
+                });
+            }
+        }
+        // 3) 마지막 수단: 글 속의 트윗 주소를 전부 찾음 (텍스트/HTML 등)
+        if (!items.length) {
+            const re = /(?:twitter|x)\.com\/([A-Za-z0-9_]+)\/status(?:es)?\/(\d{10,25})/g;
+            let m; while ((m = re.exec(text))) items.push({ id: m[2], text: undefined, handle: m[1] === 'i' ? '' : m[1], date: undefined, media: [] });
+        }
+        return items;
+    }
+    function bmBuildTweet(it) {
+        const d = parseAnyDate(it.date) || snowflakeToDate(it.id) || new Date();
+        const txt = it.text || '';
+        const t = { id_str: it.id, created_at: toTwitterDate(d), full_text: /&(amp|lt|gt|quot);/.test(txt) ? txt : encodeText(txt), account: '북마크', bm: true, entities: { urls: [] } };
+        if (it.handle) t.src_author = it.handle;
+        if (it.media && it.media.length) {
+            t.extended_entities = { media: it.media.map((m, i) => {
+                const o = { id_str: it.id + '_' + i, type: m.type, media_url_https: m.url || '' };
+                if (m.video_url) o.video_url = m.video_url;
+                return o;
+            }) };
+        }
+        return t;
+    }
+    function persistTweetList(list) {
+        const clean = list.map(t => { const c = {}; Object.keys(t).forEach(k => { if (k !== '_lc') c[k] = t[k]; }); return c; });
+        makeChunks(clean, 400000).forEach(ch => {
+            cloudWrite(() => {
+                const p = persistChain.catch(() => {}).then(async () => {
+                    const seq = (await cloud.getMaxSeq()) + 1;
+                    await cloud.putChunk(seq, ch.json, ch.count);
+                    if (idb) await idbPut(idb, { seq: seq, data: ch.json });
+                    loadedMaxSeq = Math.max(loadedMaxSeq, seq);
+                });
+                persistChain = p;
+                return p;
+            });
+        });
+    }
+    async function importBookmarkFiles(fileList) {
+        const files = Array.from(fileList || []);
+        if (!files.length) return;
+        if (busy) { alert('다른 작업이 진행 중이에요. 잠시 후 다시 시도해 주세요.'); return; }
+        busy = true;
+        const msg = t => { $('bookmarkMsg').innerText = t; };
+        try {
+            msg('이미 저장된 트윗 확인 중…');
+            await loadChunks(false); rebuildAll();
+            const all = new Map();
+            const unreadable = [];
+            for (const f of files) {
+                let items = [];
+                try { items = parseBookmarkText(await f.text()); } catch (e) { items = []; }
+                if (!items.length) unreadable.push(f.name);
+                items.forEach(it => { const prev = all.get(it.id); if (!prev || (prev.text === undefined && it.text !== undefined)) all.set(it.id, it); });
+            }
+            if (!all.size) {
+                msg(`⚠️ 파일에서 트윗을 찾지 못했어요. (${unreadable.join(', ')}) 파일 형식을 알려주시면 맞춰드릴게요. 파일 맨 앞부분 몇 줄을 복사해서 보내주세요.`);
+                busy = false; return;
+            }
+            const items = Array.from(all.values());
+            const fresh = items.filter(it => !rawById.has(it.id));
+            const withText = fresh.filter(it => it.text !== undefined);
+            const idOnly = fresh.filter(it => it.text === undefined);
+            const built = withText.map(bmBuildTweet);
+            let gone = 0, netFail = 0, fetched = 0;
+            // 글이 없는 항목(주소/번호만 있는 경우)은 인터넷에서 가져오기
+            let n = 0;
+            await Promise.all(idOnly.map(it => fetchQuoteData(it.id, it.handle || 'i', false).then(r => {
+                n++; msg(`트윗 불러오는 중… ${n} / ${idOnly.length}`);
+                if (r.status === 'ok') {
+                    const d = r.data;
+                    built.push(bmBuildTweet({ id: it.id, text: d.text || '', handle: d.handle || it.handle, date: d.date || it.date, media: bmMedia(d.photos || []).concat((d.videos || []).map(v => ({ type: v.gif ? 'animated_gif' : 'video', url: v.thumb || '', video_url: v.url }))) }));
+                    fetched++;
+                } else if (r.status === 'gone') {
+                    built.push(bmBuildTweet({ id: it.id, text: '(내용을 불러오지 못했어요 — 삭제됐거나 비공개 계정일 수 있어요) https://x.com/' + (it.handle || 'i') + '/status/' + it.id, handle: it.handle, date: it.date, media: [] }));
+                    gone++;
+                } else { netFail++; it._skip = true; }
+            })));
+            built.forEach(t => rawById.set(t.id_str, t));
+            if (built.length) persistTweetList(built);
+            const ops = [];
+            items.forEach(it => { if (it._skip) return; if (!bookmarkSet.has(it.id)) { bookmarkSet.add(it.id); ops.push({ k: 'bm', id: it.id, v: true }); } });
+            if (ops.length) cloudWrite(() => cloud.setState(ops));
+            rebuildAll();
+            runListView();
+            msg(`✅ 북마크 ${ops.length}개를 추가했어요. (새 트윗 ${built.length}개 저장${fetched ? ` · 인터넷에서 ${fetched}개 불러옴` : ''}${gone ? ` · 내용을 못 가져온 것 ${gone}개는 주소만 저장` : ''})` +
+                (netFail ? ` ⚠️ 연결 문제로 ${netFail}개는 건너뛰었어요. 같은 파일을 다시 올리면 이어서 불러와요.` : '') +
+                (unreadable.length ? ` ⚠️ 읽지 못한 파일: ${unreadable.join(', ')}` : ''));
+        } catch (e) {
+            msg('⚠️ 올리는 중 문제가 생겼어요: ' + (e && e.message ? e.message : e));
+        }
+        busy = false;
+    }
+    function randomBookmarks() {
+        const terms = parseTerms($('listSearchInput').value);
+        const cat = $('listCategorySelect').value;
+        let pool = allTweets.filter(t => bookmarkSet.has(t.id_str));
+        if (cat && cat !== 'ALL') pool = pool.filter(t => (tweetCategoryMap[t.id_str] || '미분류') === cat);
+        if (terms.length) pool = pool.filter(t => matchTerms(t, terms));
+        const sh = pool.slice();
+        for (let i = sh.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [sh[i], sh[j]] = [sh[j], sh[i]]; }
+        const picked = sh.slice(0, 50);
+        currentTerms = terms;
+        setEntries(buildEntries(picked, false), 'random', picked.length);
+    }
+
     function createTweetCard(t, highlight) {
         const isBookmarked = bookmarkSet.has(t.id_str);
         const isSelected = selectedTweetIds.has(t.id_str);
@@ -1974,17 +2354,21 @@
             toggleCardSelection(t.id_str, card);
         };
 
+        const acctName = String(t.account || '계정');
+        let hue = 0; for (const ch of acctName) hue = (hue * 31 + ch.charCodeAt(0)) % 360;
         card.innerHTML = `
+            <div class="tw-avatar" style="background:hsl(${hue} 55% 48%);">${esc(Array.from(acctName.replace(/^@/, ''))[0] || '?').toUpperCase()}</div>
+            <div class="tw-main">
             <div class="tweet-header">
                 <div>
-                    <span class="tweet-meta">👤 ${esc(t.account || '계정')} | ${fmtDate(t.created_at)}</span>
+                    <span class="tw-name">${esc(acctName)}</span><span class="tweet-meta"> · ${fmtDate(t.created_at)}</span>
                     ${isRT(t) ? '<span style="color:#00ba7c; font-size:11px; margin-left:6px;">🔄 RT</span>' : ''}
-                    ${t.edited ? '<span style="color:#8b98a5; font-size:11px; margin-left:6px;">✏️ 수정됨</span>' : ''}
-                    ${t.manual ? '<span style="color:#8b98a5; font-size:11px; margin-left:6px;">✍️ 직접 추가</span>' : ''}
-                    ${t.src_author ? `<span style="color:#8b98a5; font-size:11px; margin-left:6px;">🔗 @${esc(t.src_author)}</span>` : ''}
-                    ${hasMedia(t) ? `<span style="color:#ffd700; font-size:11px; margin-left:6px;">${hasVideo ? '🎞️ 영상' : '📷 사진'}</span>` : ''}
+                    ${t.edited ? '<span style="color:var(--sub); font-size:11px; margin-left:6px;">✏️ 수정됨</span>' : ''}
+                    ${t.manual ? '<span style="color:var(--sub); font-size:11px; margin-left:6px;">✍️ 직접 추가</span>' : ''}
+                    ${t.src_author ? `<span style="color:var(--sub); font-size:11px; margin-left:6px;">🔗 @${esc(t.src_author)}</span>` : ''}
+                    ${hasMedia(t) ? `<span style="color:#b7791f; font-size:11px; margin-left:6px;">${hasVideo ? '🎞️ 영상' : '📷 사진'}</span>` : ''}
                 </div>
-                <button class="btn btn-bookmark bm-btn" data-id="${t.id_str}" style="padding:2px 8px; font-size:11px;" onclick="toggleBookmark('${t.id_str}', event)">
+                <button class="btn btn-bookmark bm-btn ${isBookmarked ? 'on' : ''}" data-id="${t.id_str}" style="padding:2px 10px; font-size:12px;" onclick="toggleBookmark('${t.id_str}', event)">
                     ${isBookmarked ? '★ 북마크됨' : '☆ 북마크'}
                 </button>
             </div>
@@ -2005,6 +2389,7 @@
                     <button class="btn btn-secondary edit-btn" style="padding:4px 8px; font-size:11px;">✏️ 수정</button>
                     <button class="btn btn-danger" style="padding:4px 8px; font-size:11px;" onclick="deleteTweet('${t.id_str}', event)">삭제</button>
                 </div>
+            </div>
             </div>
         `;
 
