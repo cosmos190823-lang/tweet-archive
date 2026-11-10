@@ -36,7 +36,7 @@
 
         .section-box { background: #fff; padding: 16px; border-radius: 16px; margin-bottom: 12px; border: 1px solid var(--line); }
         .section-box h4 { margin: 0 0 8px; font-size: 16px; }
-        input[type="text"], input[type="number"], input[type="datetime-local"], select { width: 100%; padding: 10px 14px; border-radius: 12px; border: 1px solid var(--line); background: #fff; color: var(--text); font-size: 15px; box-sizing: border-box; margin-bottom: 8px; font-family: inherit; }
+        input[type="text"], input[type="number"], input[type="datetime-local"], input[type="date"], select { width: 100%; padding: 10px 14px; border-radius: 12px; border: 1px solid var(--line); background: #fff; color: var(--text); font-size: 15px; box-sizing: border-box; margin-bottom: 8px; font-family: inherit; }
         input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
 
         .filter-options { display: flex; gap: 16px; margin-bottom: 10px; font-size: 14px; color: var(--sub); flex-wrap: wrap; }
@@ -73,6 +73,11 @@
         .tw-name { font-weight: 700; color: var(--text); font-size: 15px; }
         .tweet-meta { font-size: 14px; color: var(--sub); }
         .tweet-text { white-space: pre-wrap; overflow-wrap: anywhere; margin-bottom: 8px; font-size: 15px; }
+        .jump-flash { animation: jumpFlash 2.4s ease-out; }
+        @keyframes jumpFlash { 0%, 55% { box-shadow: 0 0 0 3px var(--accent); background: var(--accent-weak); } 100% { box-shadow: 0 1px 3px rgba(15,20,25,0.06); } }
+        .date-jump { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
+        .date-jump input { margin: 0 !important; flex: 1; min-width: 0; }
+        .date-jump .btn { flex: 0 0 auto; }
         .highlight { background: #fff0a8; color: #000; font-weight: bold; border-radius: 3px; }
 
         .tweet-media-container { display: grid; gap: 2px; margin: 10px 0; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); border-radius: 16px; overflow: hidden; border: 1px solid var(--border); }
@@ -218,6 +223,11 @@
             <button class="btn" style="flex:1;" onclick="runSearch()">검색</button>
             <button class="btn btn-secondary" style="flex:1;" onclick="randomFromCurrent()">🎲 랜덤 100개</button>
         </div>
+        <div class="date-jump">
+            <input type="date" id="searchDateInput" onkeypress="if(event.keyCode==13) jumpToDate();">
+            <button class="btn btn-secondary" onclick="jumpToDate()">📅 날짜로 이동</button>
+        </div>
+        <div class="small-note" style="margin-bottom:0;">그 날짜 위치로 가서 보여줘요. 앞·뒤 페이지로 넘기면 다른 날도 이어서 볼 수 있어요.</div>
     </div>
 
     <div id="tab-list" class="section-box" style="display:none;">
@@ -232,6 +242,10 @@
         <div style="display:flex; gap:8px; margin-bottom:8px;">
             <button class="btn" style="flex:1;" onclick="runListView()">검색</button>
             <button class="btn btn-secondary" id="listRandomBtn" style="flex:1;" onclick="randomFromCurrent()">🎲 랜덤 100개</button>
+        </div>
+        <div class="date-jump" style="margin-bottom:8px;">
+            <input type="date" id="listDateInput" onkeypress="if(event.keyCode==13) jumpToDate();">
+            <button class="btn btn-secondary" onclick="jumpToDate()">📅 날짜로 이동</button>
         </div>
         <div id="bookmarkTools" style="display:none;">
             <button class="btn btn-secondary" style="width:100%; margin-bottom:10px;" onclick="randomBookmarks()">🎲 북마크 랜덤 50개 (누를 때마다 새로 뽑아요)</button>
@@ -912,6 +926,7 @@
         });
         $('tab-list').style.display = LIST_TABS.includes(tabName) ? 'block' : 'none';
         $('listSearchInput').value = '';
+        $('listDateInput').value = '';
         $('listCategorySelect').value = 'ALL';
         $('bookmarkTools').style.display = (tabName === 'bookmark') ? '' : 'none';
         $('listTabNote').innerText = TAB_NOTES[tabName] || '';
@@ -1067,6 +1082,34 @@
     // 지금 보고 있는 탭(통합검색 / RT / 멘션)의 조건에 맞는 트윗 중에서 랜덤 100개
     function randomFromCurrent() {
         showRandom(currentTab === 'search' ? getSearchResults() : getListResults(), 100);
+    }
+
+    /* ---------- 날짜로 이동: 현재 조건의 전체 목록을 만들고, 그 날짜가 있는 페이지/위치로 가요 ---------- */
+    function tweetMs(t) { try { return Number((BigInt(t.id_str) >> 22n) + 1288834974657n); } catch (e) { return 0; } }
+    function jumpToDate() {
+        const v = (currentTab === 'search' ? $('searchDateInput') : $('listDateInput')).value;
+        const m = v && v.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+        if (!m) { alert('이동할 날짜를 먼저 골라 주세요.'); return; }
+        const dayStart = new Date(+m[1], +m[2] - 1, +m[3]).getTime();
+        const dayEnd = dayStart + 86400000;
+        if (currentTab === 'search') runSearch(); else runListView();     // 현재 조건 그대로 전체 목록 만들기
+        const entries = currentEntries;
+        if (!entries.length) return;
+        const timeOf = e => tweetMs(e.items[0]);
+        let idx = sortOrder === 'old'
+            ? entries.findIndex(e => timeOf(e) >= dayStart)               // 오래된순: 그날 이후 첫 글
+            : entries.findIndex(e => timeOf(e) < dayEnd);                 // 최신순: 그날 이전(당일 포함) 첫 글
+        const outOfRange = idx < 0;
+        if (outOfRange) idx = entries.length - 1;
+        const pg = currentPageRanges.findIndex(r => idx >= r[0] && idx < r[1]);
+        currentPage = pg < 0 ? 1 : pg + 1;
+        renderCurrentPage();
+        const target = entries[idx].items.find(t => !deletedSet.has(t.id_str)) || entries[idx].items[0];
+        const card = document.querySelector(`#tweetResults .tweet-card[data-id="${target.id_str}"]`);
+        const info = outOfRange ? '그 날짜 쪽엔 더 없어서 가장 끝 트윗으로 갔어요' : `가장 가까운 트윗: ${fmtDate(target.created_at)}`;
+        $('statusInfo').innerText = `📅 ${v} 위치로 이동했어요 (${info}) · 페이지를 넘기면 앞뒤 날짜가 이어져요`;
+        if (card) { card.scrollIntoView({ block: 'center' }); card.classList.remove('jump-flash'); void card.offsetWidth; card.classList.add('jump-flash'); }
+        else window.scrollTo({ top: 0 });
     }
 
     function getSearchResults() {
