@@ -62,10 +62,11 @@
 
         #tweetResults { border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
         #tweetResults:empty { border: none; }
-        .tweet-card { display: flex; gap: 12px; background: #fff; padding: 12px 16px; border: none; border-bottom: 1px solid var(--border); border-radius: 0; margin-top: 0; line-height: 1.4; font-size: 15px; position: relative; cursor: pointer; transition: background 0.15s; }
+        .tweet-card { display: flex; gap: 10px; background: #fff; padding: 10px 14px; border: none; border-bottom: 1px solid var(--border); border-radius: 0; margin-top: 0; line-height: 1.4; font-size: 15px; position: relative; cursor: pointer; transition: background 0.15s; }
         .tweet-card:hover { background: var(--hover); }
         .tweet-card.selected { background: var(--accent-weak); box-shadow: inset 3px 0 0 var(--accent); }
-        .tw-avatar { flex: 0 0 40px; width: 40px; height: 40px; border-radius: 50%; color: #fff; font-weight: 700; display: flex; align-items: center; justify-content: center; font-size: 17px; user-select: none; }
+        .tw-avatar { flex: 0 0 32px; width: 32px; height: 32px; border-radius: 50%; color: #fff; font-weight: 700; display: flex; align-items: center; justify-content: center; font-size: 14px; user-select: none; box-sizing: border-box; }
+        img.tw-avatar { object-fit: cover; background: var(--border); }
         .tw-main { flex: 1; min-width: 0; }
 
         .tweet-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2px; gap: 8px; }
@@ -140,6 +141,14 @@
         .rt-link-row { display: flex; gap: 6px; margin-top: 8px; }
         .rt-link-row input { flex: 1; margin: 0; padding: 6px 10px; font-size: 13px; min-width: 0; }
         .rt-link-row .btn { padding: 4px 14px; font-size: 13px; flex: 0 0 auto; }
+        .card-menu { display: none; position: fixed; z-index: 300; background: #fff; border-radius: 12px; box-shadow: 0 0 8px rgba(101,119,134,0.25), 0 1px 4px rgba(101,119,134,0.35); min-width: 200px; padding: 6px 0; }
+        .card-menu.open { display: block; }
+        .menu-item { display: block; width: 100%; text-align: left; background: none; border: none; padding: 11px 16px; font-size: 14px; font-weight: 700; color: var(--text); cursor: pointer; text-decoration: none; box-sizing: border-box; font-family: inherit; }
+        .menu-item:hover { background: var(--hover); }
+        .more-btn { line-height: 1; }
+        .acct-row { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+        .acct-row .acct-name { flex: 1; min-width: 100px; }
+        .acct-row .btn { padding: 4px 12px; font-size: 12px; }
         .chip-btn { background: none; border: none; color: var(--text); cursor: pointer; padding: 0 2px; font-size: 13px; }
     
     </style>
@@ -271,6 +280,17 @@
         <p class="small-note">이미 저장된 트윗은 자동으로 건너뛰고 <b>새 트윗만</b> 클라우드에 추가해요. (영상 주소나 RT 원트 번호가 없던 옛 트윗은 그 정보만 보강해요.) 같은 파일을 여러 번 올려도 안전해요. 올린 트윗은 로그인한 모든 기기에서 보여요.</p>
         <hr style="border-color:var(--line); margin:15px 0;">
 
+        <h4>👤 계정 관리</h4>
+        <p class="small-note">계정 이름을 바꾸면 그 계정의 트윗 이름이 <b>한꺼번에</b> 바뀌어요. 프로필 사진은 작게 줄여서 저장돼서 모든 기기에서 보여요. (트윗 카드의 ⋯ 메뉴에서도 바꿀 수 있어요)</p>
+        <div id="accountManager"></div>
+        <div class="small-note" style="margin-top:12px;">🔗 원문 링크 열기 방식 (이 기기에만 적용)</div>
+        <select id="openModeSelect" onchange="setOpenMode(this.value)">
+            <option value="safari">사파리(브라우저)로 열기 — 아이폰에서 앱 대신 사파리</option>
+            <option value="app">기본 — 트위터 앱이 있으면 앱으로 열기</option>
+        </select>
+
+        <hr style="border-color:var(--line); margin:15px 0;">
+
         <h4>🎞️ 영상·움짤 파일 연결 (선택)</h4>
         <p class="small-note">비공개 계정 영상처럼 인터넷 주소로 재생이 안 될 때 쓰세요. 아카이브 안의 <b>data/tweets_media</b> 폴더(또는 아카이브 폴더 전체)를 선택하면, 내가 올린 영상·움짤을 <b>내 기기의 파일</b>로 재생해요. 파일은 어디에도 업로드되지 않고, 이 창을 닫으면 연결이 풀려서 접속할 때마다 다시 선택해야 해요. (컴퓨터 브라우저 권장)</p>
         <input type="file" id="mediaFolderInput" webkitdirectory multiple onchange="linkMediaFolder(this.files); this.value='';">
@@ -364,6 +384,7 @@
        4) 새 아카이브 파일을 올리면 "새 트윗만" 골라서 클라우드에 추가
        ============================================================ */
 
+    let accountAvatars = {};        // 계정 이름 → 프로필 사진(작은 이미지 데이터)
     let rawById = new Map();        // 불러온 모든 트윗 (삭제 표시한 것 포함)
     let allTweets = [];             // 화면에 쓰는 목록 (삭제 제외, 최신순)
     let tweetMapById = new Map();
@@ -475,7 +496,7 @@
 
     function afterLogout() {
         currentUser = null; idb = null; loadedMaxSeq = 0;
-        rawById = new Map(); allTweets = []; tweetMapById = new Map();
+        rawById = new Map(); accountAvatars = {}; allTweets = []; tweetMapById = new Map();
         tweetCategoryMap = {}; bookmarkSet = new Set(); deletedSet = new Set();
         selectedTweetIds.clear(); currentEntries = [];
         $('tweetResults').innerHTML = '';
@@ -528,6 +549,10 @@
         try {
             JSON.parse(jsonText).forEach(t => {
                 if (!t || !t.id_str) return;
+                if (t._profile) {                     // 계정 프로필 사진 기록
+                    if (t.avatar) accountAvatars[t.account] = t.avatar; else delete accountAvatars[t.account];
+                    return;
+                }
                 if (t._patch) {                       // 일부 값만 바꾸는 기록 (예: 계정 이름)
                     const o = rawById.get(t.id_str);
                     if (o) { const c = Object.assign({}, t); delete c._patch; Object.assign(o, c); }
@@ -587,7 +612,7 @@
         const cloudMax = await cloud.getMaxSeq();
 
         if (full) {
-            rawById = new Map(); loadedMaxSeq = 0;
+            rawById = new Map(); accountAvatars = {}; loadedMaxSeq = 0;
             if (!idb) idb = await idbOpen(currentUser.uid);
             let recs = idb ? await idbAll(idb) : [];
             const localMax = recs.reduce((m, r) => Math.max(m, r.seq), 0);
@@ -596,7 +621,7 @@
             for (const r of recs) { ingestChunk(r.data); loadedMaxSeq = Math.max(loadedMaxSeq, r.seq); }
         } else if (loadedMaxSeq > cloudMax) {
             if (idb) await idbClear(idb);
-            rawById = new Map(); loadedMaxSeq = 0;
+            rawById = new Map(); accountAvatars = {}; loadedMaxSeq = 0;
         }
 
         const total = Math.max(cloudMax - loadedMaxSeq, 0);
@@ -902,6 +927,8 @@
             $('tweetResults').innerHTML = '';
             $('statusInfo').innerText = `현재 저장된 트윗: ${allTweets.length}개`;
             renderCategoryChips();
+            renderAccountManager();
+            $('openModeSelect').value = openMode;
         }
         else if (tabName === 'add') {
             togglePagination(false);
@@ -1620,7 +1647,7 @@
         const placeholder = txt => { slot.innerHTML = posterImg + `<div class="video-msg">${txt}</div>`; };
         let code = 0, usingFx = false;
         const fail = txt => {
-            slot.innerHTML = posterImg + `<div class="video-msg">${txt} <a href="${link}" target="_blank" rel="noopener" onclick="event.stopPropagation();" style="color:#1d9bf0; font-weight:bold;">[트위터에서 보기]</a>` +
+            slot.innerHTML = posterImg + `<div class="video-msg">${txt} <a ${extAttrs(link)} onclick="event.stopPropagation();" style="color:#1d9bf0; font-weight:bold;">[트위터에서 보기]</a>` +
                 (direct ? ` <a href="${esc(direct)}" target="_blank" rel="noopener" onclick="event.stopPropagation();" style="color:#1d9bf0; font-weight:bold;">[영상 주소 직접 열기]</a>` : '') + `</div>`;
         };
         const failPlay = () => {
@@ -1687,7 +1714,7 @@
                 : `<video class="quote-video" data-src="${esc(v.url)}" poster="${esc(v.thumb || '')}" controls playsinline preload="none"></video>`).join('')}</div>`
             : '';
         const label = q.mediaOnly ? '💬 답글 단 원트' : '💬 인용한 원트';
-        return `<div class="quote-embed-author">${label} · <a href="${esc(link)}" target="_blank" rel="noopener" onclick="event.stopPropagation();">${who || '원본 보기'}</a></div>
+        return `<div class="quote-embed-author">${label} · <a ${extAttrs(link)} onclick="event.stopPropagation();">${who || '원본 보기'}</a></div>
                 <div class="quote-text">${esc(d.text)}</div>${photos}${videos}`;
     }
     function setQuoteBox(box, d, q) {
@@ -1702,7 +1729,7 @@
             : '원트를 불러오지 못했어요 (인터넷 연결 또는 서비스 문제일 수 있어요).';
         const retry = status === 'error' ? '<button class="btn btn-secondary quote-retry">다시 시도</button>' : '';
         return `<div class="quote-loading">⚠️ ${msg}
-                    <a href="${esc(q.url)}" target="_blank" rel="noopener" onclick="event.stopPropagation();" style="color:#1d9bf0; font-weight:bold;">[원트 원본 보기]</a>${retry}</div>`;
+                    <a ${extAttrs(q.url)} onclick="event.stopPropagation();" style="color:#1d9bf0; font-weight:bold;">[원트 원본 보기]</a>${retry}</div>`;
     }
 
     function loadQuoteInto(box, q) {
@@ -2292,6 +2319,128 @@
         setEntries(buildEntries(picked, false), 'random', picked.length);
     }
 
+
+    /* ---------- 원문 링크: 사파리로 열기 / 앱으로 열기 ---------- */
+    let openMode = (function () { try { return localStorage.getItem('my_tweet_open_mode') === 'app' ? 'app' : 'safari'; } catch (e) { return 'safari'; } })();
+    function isIOS() { return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); }
+    function setOpenMode(v) { openMode = (v === 'app') ? 'app' : 'safari'; try { localStorage.setItem('my_tweet_open_mode', openMode); } catch (e) {} }
+    // 트위터/엑스 주소 링크의 속성. 아이폰+사파리 모드면 앱이 가로채지 못하는 주소 형식으로 바꿔요
+    function extAttrs(u) {
+        const url = String(u || '');
+        if (openMode === 'safari' && isIOS() && /^https?:\/\/(www\.|mobile\.)?(twitter|x)\.com\//i.test(url)) {
+            return `href="${esc(url.replace(/^https:\/\//i, 'x-safari-https://').replace(/^http:\/\//i, 'x-safari-http://'))}"`;
+        }
+        return `href="${esc(url)}" target="_blank" rel="noopener"`;
+    }
+
+    /* ---------- 계정 프로필 사진 / 계정 이름 바꾸기 ---------- */
+    function acctHue(a) { let h = 0; for (const ch of String(a)) h = (h * 31 + ch.charCodeAt(0)) % 360; return h; }
+    function avatarHtml(acct) {
+        const url = accountAvatars[acct];
+        if (url) return `<img class="tw-avatar" data-acct="${esc(acct)}" src="${url}" alt="">`;
+        const first = (Array.from(String(acct).replace(/^@/, ''))[0] || '?').toUpperCase();
+        return `<div class="tw-avatar" data-acct="${esc(acct)}" style="background:hsl(${acctHue(acct)} 55% 48%);">${esc(first)}</div>`;
+    }
+    function refreshAvatarsInDom(acct) {
+        document.querySelectorAll('.tw-avatar').forEach(el => { if (el.dataset.acct === acct) el.outerHTML = avatarHtml(acct); });
+    }
+    function persistAvatar(acct) {
+        persistTweetList([{ id_str: '__profile__' + acct, _profile: true, account: acct, avatar: accountAvatars[acct] || '' }]);
+    }
+    function squareAvatar(file) {
+        return new Promise((resolve, reject) => {
+            const url = URL.createObjectURL(file);
+            const img = new Image();
+            img.onload = () => {
+                const side = Math.min(img.naturalWidth, img.naturalHeight), S = 96;
+                const cv = document.createElement('canvas'); cv.width = S; cv.height = S;
+                const cx = cv.getContext('2d');
+                cx.fillStyle = '#fff'; cx.fillRect(0, 0, S, S);
+                cx.drawImage(img, (img.naturalWidth - side) / 2, (img.naturalHeight - side) / 2, side, side, 0, 0, S, S);
+                URL.revokeObjectURL(url);
+                resolve(cv.toDataURL('image/jpeg', 0.85));
+            };
+            img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('사진을 읽을 수 없어요')); };
+            img.src = url;
+        });
+    }
+    function pickAvatar(acct) {
+        const inp = document.createElement('input');
+        inp.type = 'file'; inp.accept = 'image/*';
+        inp.onchange = async () => {
+            if (!inp.files || !inp.files[0]) return;
+            try {
+                accountAvatars[acct] = await squareAvatar(inp.files[0]);
+                persistAvatar(acct);
+                refreshAvatarsInDom(acct);
+                renderAccountManager();
+            } catch (e) { alert('프로필 사진을 저장하지 못했어요: ' + (e && e.message ? e.message : e)); }
+        };
+        inp.click();
+    }
+    function removeAvatar(acct) {
+        if (!accountAvatars[acct]) return;
+        delete accountAvatars[acct];
+        persistAvatar(acct);
+        refreshAvatarsInDom(acct);
+        renderAccountManager();
+    }
+    function renameAccount(old) {
+        const n = allTweets.filter(t => accountOf(t) === old).length;
+        let name = prompt(`'${old}' 계정의 새 이름을 입력하세요.\n(이 계정의 트윗 ${n}개의 이름이 한꺼번에 바뀌어요)`, old);
+        if (name === null) return;
+        name = name.trim();
+        if (!name || name === old) return;
+        const exists = accountCounts().some(([a]) => a === name);
+        if (exists && !confirm(`'${name}' 계정이 이미 있어요. 두 계정을 합칠까요?`)) return;
+        const patches = [];
+        rawById.forEach(t => {
+            if (accountOf(t) === old) { patches.push({ id_str: t.id_str, account: name, _patch: true }); t.account = name; }
+        });
+        if (patches.length) persistTweetList(patches);
+        if (accountAvatars[old]) {                       // 프로필 사진도 새 이름으로 옮김
+            if (!accountAvatars[name]) { accountAvatars[name] = accountAvatars[old]; persistAvatar(name); }
+            delete accountAvatars[old]; persistAvatar(old);
+        }
+        rebuildAll();
+        document.querySelectorAll('.tw-name').forEach(el => { if (el.dataset.acct === old) { el.textContent = name; el.dataset.acct = name; } });
+        document.querySelectorAll('.tw-avatar').forEach(el => { if (el.dataset.acct === old) { el.dataset.acct = name; el.outerHTML = avatarHtml(name).replace('data-acct="' + esc(name) + '"', 'data-acct="' + esc(name) + '"'); } });
+        renderAccountManager();
+    }
+    function renderAccountManager() {
+        const box = $('accountManager');
+        if (!box) return;
+        const list = accountCounts();
+        box.innerHTML = list.map(([a, n], i) =>
+            `<div class="acct-row">${avatarHtml(a)}<div class="acct-name"><b>${esc(a)}</b> <span class="cat-label">${n}개</span></div>` +
+            `<button class="btn btn-secondary" data-i="${i}" data-act="rename">이름 변경</button>` +
+            `<button class="btn btn-secondary" data-i="${i}" data-act="avatar">사진</button>` +
+            (accountAvatars[a] ? `<button class="btn btn-secondary" data-i="${i}" data-act="rmavatar">사진 삭제</button>` : '') + `</div>`).join('') || '<div class="small-note">저장된 트윗이 없어요.</div>';
+        box.onclick = e => {
+            const b = e.target.closest('button[data-act]');
+            if (!b) return;
+            const a = list[Number(b.dataset.i)][0];
+            if (b.dataset.act === 'rename') renameAccount(a);
+            else if (b.dataset.act === 'avatar') pickAvatar(a);
+            else if (b.dataset.act === 'rmavatar') removeAvatar(a);
+        };
+    }
+
+    /* ---------- 트윗 카드 ⋯ 메뉴 ---------- */
+    function closeCardMenus(except) { document.querySelectorAll('.card-menu.open').forEach(m => { if (m !== except) m.classList.remove('open'); }); }
+    function openCardMenu(btn, menu) {
+        if (menu.classList.contains('open')) { menu.classList.remove('open'); return; }
+        closeCardMenus();
+        menu.classList.add('open');
+        const r = btn.getBoundingClientRect(), w = menu.offsetWidth, h = menu.offsetHeight;
+        const left = Math.min(Math.max(8, r.right - w), window.innerWidth - w - 8);
+        let top = r.bottom + 4;
+        if (top + h > window.innerHeight - 8) top = Math.max(8, r.top - h - 4);
+        menu.style.left = left + 'px'; menu.style.top = top + 'px';
+    }
+    document.addEventListener('click', e => { if (!e.target.closest('.card-menu, .more-btn')) closeCardMenus(); });
+    window.addEventListener('scroll', () => closeCardMenus(), { passive: true });
+
     function createTweetCard(t, highlight) {
         const isBookmarked = bookmarkSet.has(t.id_str);
         const isSelected = selectedTweetIds.has(t.id_str);
@@ -2350,32 +2499,34 @@
 
         card.onclick = function (e) {
             if (['BUTTON', 'A', 'SELECT', 'OPTION', 'INPUT', 'TEXTAREA', 'IMG', 'VIDEO'].includes(e.target.tagName)) return;
-            if (e.target.closest('.edit-box, .rt-link-row')) return;
+            if (e.target.closest('.edit-box, .rt-link-row, .card-menu')) return;
             toggleCardSelection(t.id_str, card);
         };
 
         const acctName = String(t.account || '계정');
-        let hue = 0; for (const ch of acctName) hue = (hue * 31 + ch.charCodeAt(0)) % 360;
         card.innerHTML = `
-            <div class="tw-avatar" style="background:hsl(${hue} 55% 48%);">${esc(Array.from(acctName.replace(/^@/, ''))[0] || '?').toUpperCase()}</div>
+            ${avatarHtml(acctName)}
             <div class="tw-main">
             <div class="tweet-header">
                 <div>
-                    <span class="tw-name">${esc(acctName)}</span><span class="tweet-meta"> · ${fmtDate(t.created_at)}</span>
+                    <span class="tw-name" data-acct="${esc(acctName)}">${esc(acctName)}</span><span class="tweet-meta"> · ${fmtDate(t.created_at)}</span>
                     ${isRT(t) ? '<span style="color:#00ba7c; font-size:11px; margin-left:6px;">🔄 RT</span>' : ''}
                     ${t.edited ? '<span style="color:var(--sub); font-size:11px; margin-left:6px;">✏️ 수정됨</span>' : ''}
                     ${t.manual ? '<span style="color:var(--sub); font-size:11px; margin-left:6px;">✍️ 직접 추가</span>' : ''}
                     ${t.src_author ? `<span style="color:var(--sub); font-size:11px; margin-left:6px;">🔗 @${esc(t.src_author)}</span>` : ''}
                     ${hasMedia(t) ? `<span style="color:#b7791f; font-size:11px; margin-left:6px;">${hasVideo ? '🎞️ 영상' : '📷 사진'}</span>` : ''}
                 </div>
-                <button class="btn btn-bookmark bm-btn ${isBookmarked ? 'on' : ''}" data-id="${t.id_str}" style="padding:2px 10px; font-size:12px;" onclick="toggleBookmark('${t.id_str}', event)">
-                    ${isBookmarked ? '★ 북마크됨' : '☆ 북마크'}
-                </button>
+                <div style="display:flex; gap:6px; align-items:center; flex:0 0 auto;">
+                    <button class="btn btn-bookmark bm-btn ${isBookmarked ? 'on' : ''}" data-id="${t.id_str}" style="padding:2px 10px; font-size:12px;" onclick="toggleBookmark('${t.id_str}', event)">
+                        ${isBookmarked ? '★ 북마크됨' : '☆ 북마크'}
+                    </button>
+                    <button class="btn btn-secondary more-btn" style="padding:0 10px; font-size:18px; height:26px;" title="더보기">⋯</button>
+                </div>
             </div>
             <div class="tweet-text">${text}</div>
             ${rtTruncated ? (origId
                 ? '<div class="rt-full" style="margin-top:8px;"><button class="btn btn-secondary rt-full-btn" style="padding:4px 10px; font-size:12px;">📖 전체 글 불러오기</button></div>'
-                : `<div class="video-msg">✂️ 아카이브에 잘려서 저장된 글이고 원트 번호가 없어서, 여기선 전체를 볼 수 없어요. ${rtSearchUrl ? `<a href="${esc(rtSearchUrl)}" target="_blank" rel="noopener" onclick="event.stopPropagation();" style="color:#1d9bf0; font-weight:bold;">[🔎 트위터에서 원트 찾기]</a>` : ''}</div>`) : ''}
+                : `<div class="video-msg">✂️ 아카이브에 잘려서 저장된 글이고 원트 번호가 없어서, 여기선 전체를 볼 수 없어요. ${rtSearchUrl ? `<a ${extAttrs(rtSearchUrl)} onclick="event.stopPropagation();" style="color:#1d9bf0; font-weight:bold;">[🔎 트위터에서 원트 찾기]</a>` : ''}</div>`) : ''}
             ${(isRT(t) && !origId) ? '<div class="rt-link-row"><input type="text" class="rt-link-input" placeholder="원트 트윗 주소 붙여넣기"><button class="btn rt-link-save">저장</button></div>' : ''}
             ${mediaHtml}
             ${quoteBoxesHtml}
@@ -2385,8 +2536,6 @@
                     <select class="cat-select-inline" onchange="changeTweetCategory('${t.id_str}', this.value)">${catOptionsHtml(currentCat)}</select>
                 </div>
                 <div style="display:flex; gap:6px;">
-                    ${t.manual ? '' : `<a href="${esc(linkUrl)}" target="_blank" rel="noopener" onclick="event.stopPropagation();" class="btn" style="padding:4px 8px; font-size:11px; text-decoration:none;">${linkLabel.startsWith('🔎') ? '' : '🔗 '}${linkLabel}</a>`}
-                    <button class="btn btn-secondary edit-btn" style="padding:4px 8px; font-size:11px;">✏️ 수정</button>
                     <button class="btn btn-danger" style="padding:4px 8px; font-size:11px;" onclick="deleteTweet('${t.id_str}', event)">삭제</button>
                 </div>
             </div>
@@ -2398,8 +2547,19 @@
             img.src = src;
             img.onclick = e => { e.stopPropagation(); openLocalImage(src); };
         });
-        const editBtn = card.querySelector('.edit-btn');
-        if (editBtn) editBtn.onclick = e => { e.stopPropagation(); startEditTweet(t, card); };
+        const menu = document.createElement('div');
+        menu.className = 'card-menu';
+        menu.innerHTML =
+            (t.manual ? '' : `<a class="menu-item" ${extAttrs(linkUrl)} onclick="event.stopPropagation();">${linkLabel.startsWith('🔎') ? '' : '🔗 '}${esc(linkLabel)}</a>`) +
+            `<button class="menu-item edit-btn">✏️ 수정</button>` +
+            `<button class="menu-item acct-rename-btn">👤 계정 이름 바꾸기</button>` +
+            `<button class="menu-item acct-avatar-btn">🖼 계정 프로필 사진</button>`;
+        card.appendChild(menu);
+        const moreBtn = card.querySelector('.more-btn');
+        moreBtn.onclick = e => { e.stopPropagation(); openCardMenu(moreBtn, menu); };
+        menu.querySelector('.edit-btn').onclick = e => { e.stopPropagation(); menu.classList.remove('open'); startEditTweet(t, card); };
+        menu.querySelector('.acct-rename-btn').onclick = e => { e.stopPropagation(); menu.classList.remove('open'); renameAccount(acctName); };
+        menu.querySelector('.acct-avatar-btn').onclick = e => { e.stopPropagation(); menu.classList.remove('open'); pickAvatar(acctName); };
         const linkSave = card.querySelector('.rt-link-save');
         if (linkSave) {
             const inp = card.querySelector('.rt-link-input');
@@ -2435,7 +2595,7 @@
                 rtBtn.disabled = true; rtBtn.innerText = '⏳ 불러오는 중...';
                 fetchQuoteData(origId, 'i', false).then(r => {
                     if (r.status === 'ok' && valid(r.data)) showFull(r.data);
-                    else rtBtn.parentNode.innerHTML = `<span class="video-msg">⚠️ 전체 글을 가져오지 못했어요. <a href="${twitterUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation();" style="color:#1d9bf0; font-weight:bold;">[트위터 원문]</a>에서 확인해 주세요.</span>`;
+                    else rtBtn.parentNode.innerHTML = `<span class="video-msg">⚠️ 전체 글을 가져오지 못했어요. <a ${extAttrs(twitterUrl)} onclick="event.stopPropagation();" style="color:#1d9bf0; font-weight:bold;">[트위터 원문]</a>에서 확인해 주세요.</span>`;
                 });
             };
         }
