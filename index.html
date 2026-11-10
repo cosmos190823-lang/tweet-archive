@@ -22,9 +22,9 @@
         window.FIREBASE_CONFIG = firebaseConfig;
     </script>
     <style>
-        :root { color-scheme: light; --bg: #fff; --text: #0f1419; --sub: #536471; --border: #eff3f4; --line: #cfd9de; --hover: #f7f9f9; --accent: #1d9bf0; --accent-dark: #1a8cd8; --accent-weak: #e8f5fd; --danger: #f4212e; }
+        :root { color-scheme: light; --bg: #fff; --page: #f2f4f6; --text: #0f1419; --sub: #536471; --border: #eff3f4; --line: #cfd9de; --hover: #f7f9f9; --accent: #1d9bf0; --accent-dark: #1a8cd8; --accent-weak: #e8f5fd; --danger: #f4212e; }
         * { -webkit-tap-highlight-color: transparent; }
-        body { font-family: "TwitterChirp", -apple-system, BlinkMacSystemFont, "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; background: var(--bg); color: var(--text); padding: 0 12px 60px; max-width: 680px; margin: 0 auto; }
+        body { font-family: "TwitterChirp", -apple-system, BlinkMacSystemFont, "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; background: var(--page); color: var(--text); padding: 0 12px 60px; max-width: 680px; margin: 0 auto; }
         hr { border: none; border-top: 1px solid var(--border); }
         a { color: var(--accent); }
 
@@ -34,7 +34,7 @@
         .tab-btn:hover { background: var(--hover); }
         .tab-btn.active { color: var(--text); border-bottom-color: var(--accent); }
 
-        .section-box { background: var(--hover); padding: 16px; border-radius: 16px; margin-bottom: 12px; border: 1px solid var(--border); }
+        background: #fff; padding: 16px; border-radius: 16px; margin-bottom: 12px; border: 1px solid var(--line); }
         .section-box h4 { margin: 0 0 8px; font-size: 16px; }
         input[type="text"], input[type="number"], input[type="datetime-local"], select { width: 100%; padding: 10px 14px; border-radius: 12px; border: 1px solid var(--line); background: #fff; color: var(--text); font-size: 15px; box-sizing: border-box; margin-bottom: 8px; font-family: inherit; }
         input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
@@ -60,9 +60,9 @@
         .page-jump-box { display: flex; align-items: center; gap: 4px; }
         .page-jump-input { width: 60px !important; margin-bottom: 0 !important; padding: 6px !important; text-align: center; }
 
-        #tweetResults { border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+        display: block; }
         #tweetResults:empty { border: none; }
-        .tweet-card { display: flex; gap: 10px; background: #fff; padding: 10px 14px; border: none; border-bottom: 1px solid var(--border); border-radius: 0; margin-top: 0; line-height: 1.4; font-size: 15px; position: relative; cursor: pointer; transition: background 0.15s; }
+        display: flex; gap: 10px; background: #fff; padding: 12px 14px; border: 1px solid var(--line); border-radius: 16px; margin: 0 0 12px; line-height: 1.4; font-size: 15px; position: relative; cursor: pointer; transition: background 0.15s; box-shadow: 0 1px 3px rgba(15,20,25,0.06); }
         .tweet-card:hover { background: var(--hover); }
         .tweet-card.selected { background: var(--accent-weak); box-shadow: inset 3px 0 0 var(--accent); }
         .tw-avatar { flex: 0 0 32px; width: 32px; height: 32px; border-radius: 50%; color: #fff; font-weight: 700; display: flex; align-items: center; justify-content: center; font-size: 14px; user-select: none; box-sizing: border-box; }
@@ -93,7 +93,7 @@
         .card-actions { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
         .badge { background: var(--accent); color: #fff; font-size: 11px; padding: 2px 8px; border-radius: 10px; }
 
-        .thread-group { background: #fff; border-bottom: 1px solid var(--border); margin: 0; }
+        background: #fff; border: 1px solid var(--line); border-radius: 16px; margin: 0 0 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(15,20,25,0.06); }
         .thread-title { font-weight: 700; color: var(--accent); font-size: 13px; padding: 10px 16px 2px; display: flex; align-items: center; gap: 6px; cursor: pointer; }
         .thread-title:hover { text-decoration: underline; }
 
@@ -119,9 +119,9 @@
         /* 정렬 / 타래 / 영상 / 분류 */
         .sort-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
         .sort-row select { width: auto; flex: 0 0 auto; margin-bottom: 0; }
-        .result-entry { margin-top: 0; }
-        .thread-continue { margin: 0 0 0 20px; padding-left: 0; border-left: 2px solid var(--line); }
-        .thread-prev { margin: 0 0 0 20px; padding-left: 0; border-left: 2px dashed var(--line); }
+        margin: 0; }
+        margin: 0 0 0 22px; padding-left: 0; border-left: 3px solid #a9d8f7; }
+        margin: 0 0 0 22px; padding-left: 0; border-left: 3px dashed #a9d8f7; }
         .thread-label { font-size: 12px; color: var(--accent); font-weight: bold; margin: 10px 16px 0; }
         .thread-toggle { margin: 10px 16px 0; width: calc(100% - 32px); font-size: 12px; padding: 6px; }
         .thread-label-btn { width: calc(100% - 16px); margin: 6px 8px; text-align: left; font-size: 12px; padding: 5px 12px; }
@@ -149,6 +149,10 @@
         .acct-row { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
         .acct-row .acct-name { flex: 1; min-width: 100px; }
         .acct-row .btn { padding: 4px 12px; font-size: 12px; }
+        .result-entry.threaded { background: #fff; border: 1px solid var(--line); border-radius: 16px; margin: 0 0 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(15,20,25,0.06); }
+        .result-entry.threaded .tweet-card, .thread-group .tweet-card { border: none; border-radius: 0; margin: 0; box-shadow: none; border-bottom: 1px solid var(--border); }
+        .result-entry.threaded .tweet-card:last-child, .thread-group > .tweet-card:last-child { border-bottom: none; }
+        .result-entry.threaded > .thread-toggle { margin: 8px 12px 0; width: calc(100% - 24px); }
         .chip-btn { background: none; border: none; color: var(--text); cursor: pointer; padding: 0 2px; font-size: 13px; }
     
     </style>
@@ -1215,8 +1219,8 @@
         }
 
         const wrap = document.createElement('div');
-        wrap.className = 'result-entry';
         const prevItems = (entry.prev || []).filter(t => !deletedSet.has(t.id_str));
+        wrap.className = 'result-entry' + ((items.length > 1 || prevItems.length) ? ' threaded' : '');
         if (prevItems.length) {
             const btn = document.createElement('button');
             btn.className = 'btn btn-secondary thread-toggle';
@@ -2328,7 +2332,7 @@
     function extAttrs(u) {
         const url = String(u || '');
         if (openMode === 'safari' && isIOS() && /^https?:\/\/(www\.|mobile\.)?(twitter|x)\.com\//i.test(url)) {
-            return `href="${esc(url.replace(/^https:\/\//i, 'x-safari-https://').replace(/^http:\/\//i, 'x-safari-http://'))}"`;
+            return `href="${esc(url.replace(/^https:\/\//i, 'x-safari-https://').replace(/^http:\/\//i, 'x-safari-http://'))}" target="_blank"`;
         }
         return `href="${esc(url)}" target="_blank" rel="noopener"`;
     }
