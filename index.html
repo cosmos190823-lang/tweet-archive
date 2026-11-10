@@ -191,7 +191,6 @@
 
     <div class="nav-tabs">
         <button class="tab-btn active" onclick="switchTab('search')">🔍 통합 검색</button>
-        <button class="tab-btn" onclick="switchTab('random')">🎲 랜덤 100개</button>
         <button class="tab-btn" onclick="switchTab('rt')">🔄 리트윗(RT)</button>
         <button class="tab-btn" onclick="switchTab('mention')">💬 타인 멘션</button>
         <button class="tab-btn" onclick="switchTab('thread')">🧵 타래(묶어보기)</button>
@@ -215,7 +214,10 @@
             <label><input type="checkbox" id="excludeMention"> 멘션 제외</label>
             <label><input type="checkbox" id="onlyMedia"> 사진·영상 첨부만</label>
         </div>
-        <button class="btn" style="width:100%;" onclick="runSearch()">검색</button>
+        <div style="display:flex; gap:8px;">
+            <button class="btn" style="flex:1;" onclick="runSearch()">검색</button>
+            <button class="btn btn-secondary" style="flex:1;" onclick="randomFromCurrent()">🎲 랜덤 100개</button>
+        </div>
     </div>
 
     <div id="tab-list" class="section-box" style="display:none;">
@@ -227,7 +229,10 @@
                 <option value="old">오래된순</option>
             </select>
         </div>
-        <button class="btn" style="width:100%; margin-bottom:8px;" onclick="runListView()">검색</button>
+        <div style="display:flex; gap:8px; margin-bottom:8px;">
+            <button class="btn" style="flex:1;" onclick="runListView()">검색</button>
+            <button class="btn btn-secondary" id="listRandomBtn" style="flex:1;" onclick="randomFromCurrent()">🎲 랜덤 100개</button>
+        </div>
         <div id="bookmarkTools" style="display:none;">
             <button class="btn btn-secondary" style="width:100%; margin-bottom:10px;" onclick="randomBookmarks()">🎲 북마크 랜덤 50개 (누를 때마다 새로 뽑아요)</button>
             <div class="small-note" style="margin:6px 0 4px;">📥 북마크 파일 올리기 (JSON · CSV · TXT 등, 여러 개 가능) — 올린 트윗은 이 북마크 탭에 들어가요</div>
@@ -235,15 +240,6 @@
             <div id="bookmarkMsg" class="small-note"></div>
         </div>
         <div class="small-note" id="listTabNote" style="margin-bottom:0;"></div>
-    </div>
-
-    <div id="tab-random" class="section-box" style="display:none;">
-        <label style="font-size:13px; color:var(--sub); margin-bottom:6px; display:block;">추출할 카테고리 대상:</label>
-        <select id="randomCatSelect" onchange="generateRandomTweets()"></select>
-        <div class="filter-options" style="margin-top:6px; margin-bottom:8px;">
-            <label><input type="checkbox" id="randomOnlyMedia" onchange="generateRandomTweets()"> 사진·영상 첨부 트윗 중에서만 뽑기</label>
-        </div>
-        <button class="btn" style="width:100%; margin-top:4px;" onclick="generateRandomTweets()">🎲 다른 랜덤 100개 다시 뽑기</button>
     </div>
 
     <div id="tab-add" class="section-box" style="display:none;">
@@ -911,7 +907,7 @@
         currentTab = tabName;
         currentPage = 1;
         currentTerms = [];
-        ['search', 'random', 'add', 'data'].forEach(t => {
+        ['search', 'add', 'data'].forEach(t => {
             $(`tab-${t}`).style.display = (t === tabName) ? 'block' : 'none';
         });
         $('tab-list').style.display = LIST_TABS.includes(tabName) ? 'block' : 'none';
@@ -919,8 +915,9 @@
         $('listCategorySelect').value = 'ALL';
         $('bookmarkTools').style.display = (tabName === 'bookmark') ? '' : 'none';
         $('listTabNote').innerText = TAB_NOTES[tabName] || '';
+        $('listRandomBtn').style.display = (tabName === 'thread' || tabName === 'bookmark') ? 'none' : '';
         document.querySelectorAll('.tab-btn').forEach((btn, idx) => {
-            btn.classList.toggle('active', ['search', 'random', 'rt', 'mention', 'thread', 'bookmark', 'add', 'data'][idx] === tabName);
+            btn.classList.toggle('active', ['search', 'rt', 'mention', 'thread', 'bookmark', 'add', 'data'][idx] === tabName);
         });
         syncSortSelects();
         selectedTweetIds.clear();
@@ -940,7 +937,6 @@
             $('statusInfo').innerText = '';
             initAddForm();
         }
-        else if (tabName === 'random') generateRandomTweets();
         else if (LIST_TABS.includes(tabName)) runListView();
         else if (tabName === 'search') runSearch();
     }
@@ -1056,23 +1052,24 @@
         setEntries(buildEntries(list, group), 'list', list.length);
     }
 
-    function generateRandomTweets() {
-        const targetCat = $('randomCatSelect').value;
-        const onlyMedia = $('randomOnlyMedia').checked;
-        let pool = allTweets;
-        if (targetCat && targetCat !== 'ALL') pool = pool.filter(t => (tweetCategoryMap[t.id_str] || '미분류') === targetCat);
-        if (onlyMedia) pool = pool.filter(t => hasMedia(t));
-        const shuffled = [...pool];
-        for (let i = shuffled.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-        }
-        currentTerms = [];
-        const picked = shuffled.slice(0, 100);
+    function shuffleCopy(arr) {
+        const a = arr.slice();
+        for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+        return a;
+    }
+    let randomPoolCount = 0;
+    function showRandom(pool, n) {
+        randomPoolCount = pool.length;
+        const picked = shuffleCopy(pool).slice(0, n);
         setEntries(buildEntries(picked, false), 'random', picked.length);
     }
 
-    function runSearch() {
+    // 지금 보고 있는 탭(통합검색 / RT / 멘션)의 조건에 맞는 트윗 중에서 랜덤 100개
+    function randomFromCurrent() {
+        showRandom(currentTab === 'search' ? getSearchResults() : getListResults(), 100);
+    }
+
+    function getSearchResults() {
         const terms = parseTerms($('searchInput').value);
         const exRT = $('excludeRT').checked;
         const exMention = $('excludeMention').checked;
@@ -1090,8 +1087,9 @@
         if (exMention) filtered = filtered.filter(t => !isExternalMention(t));
         if (onlyMedia) filtered = filtered.filter(t => hasMedia(t));
         if (terms.length) filtered = filtered.filter(t => matchTerms(t, terms));
-        showList(filtered, true);
+        return filtered;
     }
+    function runSearch() { showList(getSearchResults(), true); }
 
     // RT / 멘션 / 타래 / 북마크 탭
     function runListView() {
@@ -1108,13 +1106,21 @@
             setEntries(entries, 'thread', groups.length);
             return;
         }
+        showList(getListResults(), true);
+    }
+    // RT / 멘션 / 북마크 탭의 현재 조건(검색어·카테고리)에 맞는 트윗
+    function getListResults() {
+        const terms = parseTerms($('listSearchInput').value);
+        const cat = $('listCategorySelect').value;
+        const catOk = t => !cat || cat === 'ALL' || (tweetCategoryMap[t.id_str] || '미분류') === cat;
+        currentTerms = terms;
         let base = allTweets;
         if (currentTab === 'rt') base = base.filter(t => isRT(t));
         else if (currentTab === 'mention') base = base.filter(t => isExternalMention(t));
         else if (currentTab === 'bookmark') base = base.filter(t => bookmarkSet.has(t.id_str));
         base = base.filter(catOk);
         if (terms.length) base = base.filter(t => matchTerms(t, terms));
-        showList(base, true);
+        return base;
     }
 
     function maxPageNum() { return currentPageRanges.length || 1; }
@@ -1176,6 +1182,8 @@
 
         if (currentMode === 'thread') {
             $('statusInfo').innerText = `연결된 타래: ${currentMatchedCount}개 그룹 (트윗 ${currentItemCount}개) · 한 페이지에 50개 이상, 타래는 끊지 않고 통째로 보여줘요`;
+        } else if (currentMode === 'random') {
+            $('statusInfo').innerText = `🎲 조건에 맞는 ${randomPoolCount}개 중 랜덤 ${currentMatchedCount}개 (페이지당 약 ${PAGE_SIZE}개) · 다시 누르면 새로 뽑아요`;
         } else {
             $('statusInfo').innerText = `총 ${allTweets.length}개 중 조건 결과: ${currentMatchedCount}개 (페이지당 약 ${PAGE_SIZE}개)`;
         }
@@ -1313,14 +1321,13 @@
     }
     function updateCategorySelects() {
         const options = categories.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
-        const sS = $('searchCategorySelect'), sB = $('batchCatSelect'), sR = $('randomCatSelect'), sL = $('listCategorySelect');
-        const keep = { s: sS.value, b: sB.value, r: sR.value, l: sL.value };
+        const sS = $('searchCategorySelect'), sB = $('batchCatSelect'), sL = $('listCategorySelect');
+        const keep = { s: sS.value, b: sB.value, l: sL.value };
         sS.innerHTML = `<option value="ALL">전체 카테고리</option>` + options;
         sB.innerHTML = options;
-        sR.innerHTML = `<option value="ALL">전체 카테고리에서 랜덤</option>` + options;
         sL.innerHTML = `<option value="ALL">전체 카테고리</option>` + options;
         const restore = (el, v, fb) => { el.value = v; if (el.value !== v) el.value = fb; };
-        restore(sS, keep.s, 'ALL'); restore(sB, keep.b, '미분류'); restore(sR, keep.r, 'ALL'); restore(sL, keep.l, 'ALL');
+        restore(sS, keep.s, 'ALL'); restore(sB, keep.b, '미분류'); restore(sL, keep.l, 'ALL');
     }
     function catOptionsHtml(sel) {
         const list = categories.includes(sel) ? categories : [sel].concat(categories);
@@ -2319,6 +2326,7 @@
         const sh = pool.slice();
         for (let i = sh.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [sh[i], sh[j]] = [sh[j], sh[i]]; }
         const picked = sh.slice(0, 50);
+        randomPoolCount = pool.length;
         currentTerms = terms;
         setEntries(buildEntries(picked, false), 'random', picked.length);
     }
@@ -2332,10 +2340,20 @@
     function extAttrs(u) {
         const url = String(u || '');
         if (openMode === 'safari' && isIOS() && /^https?:\/\/(www\.|mobile\.)?(twitter|x)\.com\//i.test(url)) {
-            return `href="${esc(url.replace(/^https:\/\//i, 'x-safari-https://').replace(/^http:\/\//i, 'x-safari-http://'))}" target="_blank"`;
+            // 사파리로 열기: 앱이 못 가로채는 주소. 클릭하면 아래 핸들러가 "새 탭"을 만들어서 거기로 보내요
+            return `href="${esc(url.replace(/^https:\/\//i, 'x-safari-https://').replace(/^http:\/\//i, 'x-safari-http://'))}" data-xs="1" target="_blank"`;
         }
         return `href="${esc(url)}" target="_blank" rel="noopener"`;
     }
+    // 사파리 모드 링크: 빈 새 탭을 먼저 열고 그 탭을 사파리 주소로 보내요 (지금 보던 탭은 그대로 유지)
+    document.addEventListener('click', e => {
+        const a = e.target.closest && e.target.closest('a[data-xs]');
+        if (!a) return;
+        e.preventDefault();
+        const w = window.open('about:blank', '_blank');
+        if (w) { try { w.opener = null; } catch (x) {} w.location.href = a.href; }
+        else window.location.href = a.href;      // 팝업이 막힌 경우에만 현재 탭 사용
+    }, true);
 
     /* ---------- 계정 프로필 사진 / 계정 이름 바꾸기 ---------- */
     function acctHue(a) { let h = 0; for (const ch of String(a)) h = (h * 31 + ch.charCodeAt(0)) % 360; return h; }
