@@ -2868,7 +2868,7 @@
             ${rtTruncated ? (origId
                 ? '<div class="rt-full" style="margin-top:8px;"><button class="btn btn-secondary rt-full-btn" style="padding:4px 10px; font-size:12px;">전체 글 불러오기</button></div>'
                 : `<div class="video-msg">아카이브에 잘려서 저장된 글이고 원트 번호가 없어서, 여기선 전체를 볼 수 없어요. ${rtSearchUrl ? `<a ${extAttrs(rtSearchUrl)} onclick="event.stopPropagation();" style="color:#1d9bf0; font-weight:bold;">[트위터에서 원트 찾기]</a>` : ''}</div>`) : ''}
-            ${(isRT(t) && !origId) ? '<div class="rt-link-row"><input type="text" class="rt-link-input" placeholder="원트 트윗 주소 붙여넣기"><button class="btn rt-link-save">저장</button></div>' : ''}
+            ${(rtTruncated && !origId) ? '<div class="rt-link-row"><input type="text" class="rt-link-input" placeholder="원트 트윗 주소 붙여넣기"><button class="btn rt-link-save">저장</button></div>' : ''}
             ${mediaHtml}
             ${quoteBoxesHtml}
             <div class="card-actions">
