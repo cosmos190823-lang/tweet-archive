@@ -1085,7 +1085,19 @@
     }
 
     /* ---------- 날짜로 이동: 현재 조건의 전체 목록을 만들고, 그 날짜가 있는 페이지/위치로 가요 ---------- */
-    function tweetMs(t) { try { return Number((BigInt(t.id_str) >> 22n) + 1288834974657n); } catch (e) { return 0; } }
+    // 화면에 표시되는 날짜(created_at)와 같은 기준으로 시간을 계산 (안 되면 트윗 ID로 대신 계산)
+    function tweetMs(t) {
+        const c = String(t.created_at || '');
+        const m = c.match(/^\w{3} (\w{3}) (\d{1,2}) (\d{2}):(\d{2}):(\d{2}) ([+-])(\d{2})(\d{2}) (\d{4})$/);
+        if (m) {
+            const months = {Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};
+            const off = (m[6] === '-' ? -1 : 1) * (parseInt(m[7], 10) * 60 + parseInt(m[8], 10));
+            return Date.UTC(+m[9], months[m[1]], +m[2], +m[3], +m[4], +m[5]) - off * 60000;
+        }
+        const d = c ? new Date(c).getTime() : NaN;
+        if (!isNaN(d)) return d;
+        try { return Number((BigInt(t.id_str) >> 22n) + 1288834974657n); } catch (e) { return 0; }
+    }
     function jumpToDate() {
         const v = (currentTab === 'search' ? $('searchDateInput') : $('listDateInput')).value;
         const m = v && v.match(/^(\d{4})-(\d{2})-(\d{2})$/);
@@ -1095,16 +1107,24 @@
         if (currentTab === 'search') runSearch(); else runListView();     // 현재 조건 그대로 전체 목록 만들기
         const entries = currentEntries;
         if (!entries.length) return;
-        const timeOf = e => tweetMs(e.items[0]);
-        let idx = sortOrder === 'old'
-            ? entries.findIndex(e => timeOf(e) >= dayStart)               // 오래된순: 그날 이후 첫 글
-            : entries.findIndex(e => timeOf(e) < dayEnd);                 // 최신순: 그날 이전(당일 포함) 첫 글
-        const outOfRange = idx < 0;
-        if (outOfRange) idx = entries.length - 1;
+        // 목록 순서가 완전히 날짜순이 아니어도 맞도록, 고른 날짜와 가장 가까운 항목을 찾아요 (당일 글이 있으면 거리 0)
+        const dist = e => e.items.reduce((best, t) => {
+            const ms = tweetMs(t);
+            const d = ms < dayStart ? dayStart - ms : (ms >= dayEnd ? ms - dayEnd + 1 : 0);
+            return Math.min(best, d);
+        }, Infinity);
+        let idx = 0, bestD = Infinity;
+        for (let i = 0; i < entries.length; i++) {
+            const d = dist(entries[i]);
+            if (d < bestD) { bestD = d; idx = i; if (d === 0) break; }
+        }
+        const outOfRange = false;
         const pg = currentPageRanges.findIndex(r => idx >= r[0] && idx < r[1]);
         currentPage = pg < 0 ? 1 : pg + 1;
         renderCurrentPage();
-        const target = entries[idx].items.find(t => !deletedSet.has(t.id_str)) || entries[idx].items[0];
+        const dOf = t => { const ms = tweetMs(t); return ms < dayStart ? dayStart - ms : (ms >= dayEnd ? ms - dayEnd + 1 : 0); };
+        const cand = entries[idx].items.filter(t => !deletedSet.has(t.id_str));
+        const target = (cand.length ? cand : entries[idx].items).reduce((a, b) => dOf(b) < dOf(a) ? b : a);
         const card = document.querySelector(`#tweetResults .tweet-card[data-id="${target.id_str}"]`);
         const info = outOfRange ? '그 날짜 쪽엔 더 없어서 가장 끝 트윗으로 갔어요' : `가장 가까운 트윗: ${fmtDate(target.created_at)}`;
         $('statusInfo').innerText = `📅 ${v} 위치로 이동했어요 (${info}) · 페이지를 넘기면 앞뒤 날짜가 이어져요`;
