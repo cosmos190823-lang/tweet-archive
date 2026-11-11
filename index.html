@@ -2564,9 +2564,16 @@
                     list.sort((a, b) => a.path.localeCompare(b.path, undefined, { numeric: true }));
                     const urls = [];
                     try {
-                        for (const f of list.slice(0, 4)) {
+                        const seenSig = new Set();      // 여러 계정 ZIP에 같은 사진이 들어 있어도 한 번만 저장
+                        for (const f of list) {
+                            if (urls.length >= 4) break;
+                            const buf = await f.e.async('arraybuffer');
+                            const u8 = new Uint8Array(buf);
+                            const sig = buf.byteLength + ':' + Array.from(u8.slice(0, 24)).join(',') + ':' + Array.from(u8.slice(-24)).join(',');
+                            if (seenSig.has(sig)) continue;
+                            seenSig.add(sig);
                             const key = id + '_z' + urls.length;
-                            await imgPut(key, new Blob([await f.e.async('arraybuffer')], { type: mimeOf[f.ext] }));    // 원본 그대로 저장
+                            await imgPut(key, new Blob([buf], { type: mimeOf[f.ext] }));    // 원본 그대로 저장
                             urls.push('local:' + key);
                         }
                     } catch (er) { zipFail++; zipErr = er && er.message ? er.message : String(er); if (!urls.length) continue; }
