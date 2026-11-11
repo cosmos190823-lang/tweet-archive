@@ -249,9 +249,8 @@
         </div>
         <div id="bookmarkTools" style="display:none;">
             <button class="btn btn-secondary" style="width:100%; margin-bottom:10px;" onclick="randomBookmarks()">🎲 북마크 랜덤 50개 (누를 때마다 새로 뽑아요)</button>
-            <div class="small-note" style="margin:6px 0 4px;">📥 북마크 파일 올리기 (JSON · CSV · TXT 등, 여러 개 가능) — 올린 트윗은 이 북마크 탭에 들어가요</div>
-            <input type="file" id="bookmarkFileInput" accept=".json,.js,.csv,.tsv,.txt,.html,.htm" multiple onchange="importBookmarkFiles(this.files); this.value='';">
-            <div id="bookmarkMsg" class="small-note"></div>
+            <button class="btn btn-secondary" style="width:100%; margin-bottom:6px;" onclick="unstarImportedBookmarks()">🧹 파일로 가져온 트윗의 ★ 모두 해제</button>
+            <div class="small-note" style="margin:0 0 6px;">이 탭에는 직접 ★ 누른 트윗만 보여요. 파일로 가져온 트윗은 <b>통합 검색 → 계정 "북마크"</b>에서 볼 수 있어요.</div>
         </div>
         <div class="small-note" id="listTabNote" style="margin-bottom:0;"></div>
     </div>
@@ -279,6 +278,10 @@
         <select id="addCatSelect"></select>
         <button class="btn" style="width:100%;" onclick="submitAddTweet()">추가</button>
         <div id="addMsg" class="small-note" style="margin-top:8px;"></div>
+        <hr style="border:none; border-top:1px solid var(--border); margin:18px 0 12px;">
+        <div class="small-note" style="margin:6px 0 4px;">📥 북마크 파일 올리기 (JSON · CSV · TXT 등, 여러 개 가능) — 올린 트윗은 통합 검색의 계정 "북마크"로 들어가요 (북마크 탭에는 안 들어가요)</div>
+        <input type="file" id="bookmarkFileInput" accept=".json,.js,.csv,.tsv,.txt,.html,.htm" multiple onchange="importBookmarkFiles(this.files); this.value='';">
+        <div id="bookmarkMsg" class="small-note"></div>
     </div>
 
     <div id="tab-data" class="section-box" style="display:none;">
@@ -2399,18 +2402,24 @@
             })));
             built.forEach(t => rawById.set(t.id_str, t));
             if (built.length) persistTweetList(built);
-            const ops = [];
-            items.forEach(it => { if (it._skip) return; if (!bookmarkSet.has(it.id)) { bookmarkSet.add(it.id); ops.push({ k: 'bm', id: it.id, v: true }); } });
-            if (ops.length) cloudWrite(() => cloud.setState(ops));
             rebuildAll();
-            runListView();
-            msg(`✅ 북마크 ${ops.length}개를 추가했어요. (새 트윗 ${built.length - photoFixed}개 저장${photoFixed ? ` · 사진 채운 기존 북마크 ${photoFixed}개` : ''}${fetched ? ` · 인터넷에서 ${fetched}개 불러옴` : ''}${gone ? ` · 내용을 못 가져온 것 ${gone}개는 주소만 저장` : ''})` +
+            const added = built.length - photoFixed;
+            msg(`✅ 통합 검색의 계정 "북마크"에 ${added}개를 추가했어요. (★ 북마크 탭에는 넣지 않았어요${photoFixed ? ` · 사진 채운 기존 항목 ${photoFixed}개` : ''}${fetched ? ` · 인터넷에서 ${fetched}개 불러옴` : ''}${gone ? ` · 내용을 못 가져온 것 ${gone}개는 주소만 저장` : ''})` +
                 (netFail ? ` ⚠️ 연결 문제로 ${netFail}개는 건너뛰었어요. 같은 파일을 다시 올리면 이어서 불러와요.` : '') +
                 (unreadable.length ? ` ⚠️ 읽지 못한 파일: ${unreadable.join(', ')}` : ''));
         } catch (e) {
             msg('⚠️ 올리는 중 문제가 생겼어요: ' + (e && e.message ? e.message : e));
         }
         busy = false;
+    }
+    // 예전에 파일로 가져오면서 ★가 같이 눌린 트윗들을 한 번에 해제 (직접 누른 ★도 같이 풀려요)
+    function unstarImportedBookmarks() {
+        const ids = allTweets.filter(t => t.bm && bookmarkSet.has(t.id_str)).map(t => t.id_str);
+        if (!ids.length) { alert('해제할 항목이 없어요.'); return; }
+        if (!confirm(`파일로 가져온 트윗 중 ★가 눌린 ${ids.length}개의 ★를 해제할까요?\n(트윗은 지워지지 않고 통합 검색의 계정 "북마크"에 그대로 남아요. 그중에 직접 ★ 누른 게 있었다면 그것도 풀려요.)`)) return;
+        const ops = ids.map(id => { bookmarkSet.delete(id); return { k: 'bm', id, v: false }; });
+        cloudWrite(() => cloud.setState(ops));
+        runListView();
     }
     function randomBookmarks() {
         const terms = parseTerms($('listSearchInput').value);
