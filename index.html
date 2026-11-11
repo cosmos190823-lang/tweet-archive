@@ -167,12 +167,12 @@
     <!-- 로그인 / 불러오는 중 / 오류 화면 -->
     <div id="gate">
         <div class="gate-card">
-            <h2>🐦 트위터 아카이브</h2>
+            <h2>트위터 아카이브</h2>
             <div id="gateLogin" style="display:none;">
                 <button class="btn" style="width:100%; padding:14px; font-size:15px;" onclick="doLogin()">Google 계정으로 로그인</button>
             </div>
             <div id="gateSetup" style="display:none; text-align:left; font-size:14px; line-height:1.7;">
-                <b>⚙️ 아직 Firebase 설정값이 비어 있어요.</b><br>
+                <b>아직 Firebase 설정값이 비어 있어요.</b><br>
                 이 파일(index.html)을 메모장으로 열어, 맨 위쪽 <code>firebaseConfig</code> 부분에 Firebase에서 복사한 값을 붙여넣고 저장해 주세요. (가이드 5단계)
             </div>
             <div id="gateBar" class="gate-bar" style="display:none;"><div id="gateBarFill"></div></div>
@@ -188,20 +188,20 @@
 
     <div class="topbar">
         <span id="userLabel"></span>
-        <span id="syncBadge">☁️ 모두 저장됨</span>
+        <span id="syncBadge">모두 저장됨</span>
         <span class="spacer"></span>
         <button class="btn btn-secondary" onclick="syncNow()">동기화</button>
         <button class="btn btn-secondary" onclick="doLogout()">로그아웃</button>
     </div>
 
     <div class="nav-tabs">
-        <button class="tab-btn active" onclick="switchTab('search')">🔍 통합 검색</button>
-        <button class="tab-btn" onclick="switchTab('rt')">🔄 리트윗(RT)</button>
-        <button class="tab-btn" onclick="switchTab('mention')">💬 타인 멘션</button>
-        <button class="tab-btn" onclick="switchTab('thread')">🧵 타래(묶어보기)</button>
-        <button class="tab-btn" onclick="switchTab('bookmark')">⭐️ 북마크</button>
-        <button class="tab-btn" onclick="switchTab('add')">✍️ 트윗 추가</button>
-        <button class="tab-btn" onclick="switchTab('data')">⚙️ 설정/파일</button>
+        <button class="tab-btn active" onclick="switchTab('search')">통합 검색</button>
+        <button class="tab-btn" onclick="switchTab('rt')">리트윗(RT)</button>
+        <button class="tab-btn" onclick="switchTab('mention')">타인 멘션</button>
+        <button class="tab-btn" onclick="switchTab('thread')">타래(묶어보기)</button>
+        <button class="tab-btn" onclick="switchTab('bookmark')">북마크</button>
+        <button class="tab-btn" onclick="switchTab('add')">트윗 추가</button>
+        <button class="tab-btn" onclick="switchTab('data')">설정/파일</button>
     </div>
 
     <div id="tab-search" class="section-box">
@@ -221,11 +221,11 @@
         </div>
         <div style="display:flex; gap:8px;">
             <button class="btn" style="flex:1;" onclick="runSearch()">검색</button>
-            <button class="btn btn-secondary" style="flex:1;" onclick="randomFromCurrent()">🎲 랜덤 100개</button>
+            <button class="btn btn-secondary" style="flex:1;" onclick="randomFromCurrent()">랜덤 100개</button>
         </div>
         <div class="date-jump">
             <input type="date" id="searchDateInput" onkeypress="if(event.keyCode==13) jumpToDate();">
-            <button class="btn btn-secondary" onclick="jumpToDate()">📅 날짜로 이동</button>
+            <button class="btn btn-secondary" onclick="jumpToDate()">날짜로 이동</button>
         </div>
         <div class="small-note" style="margin-bottom:0;">그 날짜 위치로 가서 보여줘요. 앞·뒤 페이지로 넘기면 다른 날도 이어서 볼 수 있어요.</div>
     </div>
@@ -241,23 +241,22 @@
         </div>
         <div style="display:flex; gap:8px; margin-bottom:8px;">
             <button class="btn" style="flex:1;" onclick="runListView()">검색</button>
-            <button class="btn btn-secondary" id="listRandomBtn" style="flex:1;" onclick="randomFromCurrent()">🎲 랜덤 100개</button>
+            <button class="btn btn-secondary" id="listRandomBtn" style="flex:1;" onclick="randomFromCurrent()">랜덤 100개</button>
         </div>
         <div class="date-jump" style="margin-bottom:8px;">
             <input type="date" id="listDateInput" onkeypress="if(event.keyCode==13) jumpToDate();">
-            <button class="btn btn-secondary" onclick="jumpToDate()">📅 날짜로 이동</button>
+            <button class="btn btn-secondary" onclick="jumpToDate()">날짜로 이동</button>
         </div>
         <div id="bookmarkTools" style="display:none;">
-            <button class="btn btn-secondary" style="width:100%; margin-bottom:10px;" onclick="randomBookmarks()">🎲 북마크 랜덤 50개 (누를 때마다 새로 뽑아요)</button>
-            <button class="btn btn-secondary" style="width:100%; margin-bottom:6px;" onclick="unstarImportedBookmarks()">🧹 파일로 가져온 트윗의 ★ 모두 해제</button>
+            <button class="btn btn-secondary" style="width:100%; margin-bottom:10px;" onclick="randomBookmarks()">북마크 랜덤 50개 (누를 때마다 새로 뽑아요)</button>
             <div class="small-note" style="margin:0 0 6px;">이 탭에는 직접 ★ 누른 트윗만 보여요. 파일로 가져온 트윗은 <b>통합 검색 → 계정 "북마크"</b>에서 볼 수 있어요.</div>
         </div>
         <div class="small-note" id="listTabNote" style="margin-bottom:0;"></div>
     </div>
 
     <div id="tab-add" class="section-box" style="display:none;">
-        <h4>✍️ 트윗 직접 추가</h4>
-        <div class="small-note" style="margin:6px 0 2px;">🔗 트윗 주소로 불러오기 (공개 계정 트윗만 · 불러온 뒤 확인하고 아래 "추가"를 눌러요)</div>
+        <h4>트윗 직접 추가</h4>
+        <div class="small-note" style="margin:6px 0 2px;">트윗 주소로 불러오기 (공개 계정 트윗만 · 불러온 뒤 확인하고 아래 "추가"를 눌러요)</div>
         <div style="display:flex; gap:6px; margin-bottom:6px;">
             <input type="text" id="addLinkInput" placeholder="https://x.com/계정/status/123…" style="margin:0; flex:1; min-width:0;" onkeypress="if(event.keyCode==13) loadTweetFromLink();">
             <button class="btn" style="flex:0 0 auto;" onclick="loadTweetFromLink()">불러오기</button>
@@ -279,17 +278,19 @@
         <button class="btn" style="width:100%;" onclick="submitAddTweet()">추가</button>
         <div id="addMsg" class="small-note" style="margin-top:8px;"></div>
         <hr style="border:none; border-top:1px solid var(--border); margin:18px 0 12px;">
-        <div class="small-note" style="margin:6px 0 4px;">📥 북마크 파일 올리기 (JSON · CSV · TXT 등, 여러 개 가능) — 올린 트윗은 통합 검색의 계정 "북마크"로 들어가요 (북마크 탭에는 안 들어가요)</div>
-        <input type="file" id="bookmarkFileInput" accept=".json,.js,.csv,.tsv,.txt,.html,.htm" multiple onchange="importBookmarkFiles(this.files); this.value='';">
-        <div id="bookmarkMsg" class="small-note"></div>
+        <div class="small-note" style="margin:6px 0 4px;">북마크 파일 올리기 (JSON · CSV · TXT 등, 여러 개 가능) — 올린 트윗은 통합 검색의 계정 "북마크"로 들어가요 (북마크 탭에는 안 들어가요). 사진을 내려받은 ZIP도 JSON과 같이(또는 나중에 따로) 올리면, 파일 이름 속 트윗 번호로 맞춰서 연결해요. 사진은 원본 그대로 이 기기 브라우저에만 저장돼요(다른 기기로 옮기기: 설정/파일 탭)</div>
+        <input type="file" id="bookmarkFileInput" accept=".json,.js,.csv,.tsv,.txt,.html,.htm,.zip" multiple onchange="importBookmarkFiles(this.files); this.value='';">
+        <button class="btn btn-secondary" style="width:100%; margin-top:8px;" onclick="fillBookmarkPhotos('')">사진 안 보이는 북마크 — 인터넷에서 사진 불러오기</button>
+        <div class="small-note" style="margin:4px 0 0;">파일에 사진 주소가 없어서 글 끝에 t.co 링크만 보이는 트윗을, 트위터에서 다시 불러와 사진·영상을 채워요. (삭제됐거나 비공개인 트윗은 못 가져와요)</div>
+        <div id="bookmarkMsg" class="small-note" style="white-space:pre-line;"></div>
     </div>
 
     <div id="tab-data" class="section-box" style="display:none;">
-        <h4>📁 트윗 파일 추가</h4>
+        <h4>트윗 파일 추가</h4>
         <div class="small-note" style="margin:0 0 4px;">이번에 올리는 파일의 <b>계정 아이디</b> (비우면 파일 이름을 써요. 이미 올린 트윗도 이 이름으로 바뀌어요)</div>
         <input type="text" id="importAccountName" placeholder="예: myid">
         <div id="dropZone" class="drop-zone">
-            <div>📥 트위터 아카이브의 <b>tweets.js</b> 파일을 여기로 끌어다 놓으세요</div>
+            <div>트위터 아카이브의 <b>tweets.js</b> 파일을 여기로 끌어다 놓으세요</div>
             <div class="small-note">폰에서는 아래 버튼으로 선택하세요 · 파일이 여러 개면 한꺼번에 선택해도 돼요</div>
             <input type="file" id="fileInput" multiple accept=".js,.json" onchange="importFiles(this.files); this.value='';">
         </div>
@@ -297,10 +298,10 @@
         <p class="small-note">이미 저장된 트윗은 자동으로 건너뛰고 <b>새 트윗만</b> 클라우드에 추가해요. (영상 주소나 RT 원트 번호가 없던 옛 트윗은 그 정보만 보강해요.) 같은 파일을 여러 번 올려도 안전해요. 올린 트윗은 로그인한 모든 기기에서 보여요.</p>
         <hr style="border-color:var(--line); margin:15px 0;">
 
-        <h4>👤 계정 관리</h4>
+        <h4>계정 관리</h4>
         <p class="small-note">계정 이름을 바꾸면 그 계정의 트윗 이름이 <b>한꺼번에</b> 바뀌어요. 프로필 사진은 작게 줄여서 저장돼서 모든 기기에서 보여요. (트윗 카드의 ⋯ 메뉴에서도 바꿀 수 있어요)</p>
         <div id="accountManager"></div>
-        <div class="small-note" style="margin-top:12px;">🔗 원문 링크 열기 방식 (이 기기에만 적용)</div>
+        <div class="small-note" style="margin-top:12px;">원문 링크 열기 방식 (이 기기에만 적용)</div>
         <select id="openModeSelect" onchange="setOpenMode(this.value)">
             <option value="safari">사파리(브라우저)로 열기 — 아이폰에서 앱 대신 사파리</option>
             <option value="app">기본 — 트위터 앱이 있으면 앱으로 열기</option>
@@ -308,24 +309,32 @@
 
         <hr style="border-color:var(--line); margin:15px 0;">
 
-        <h4>🎞️ 영상·움짤 파일 연결 (선택)</h4>
+        <h4>영상·움짤 파일 연결 (선택)</h4>
         <p class="small-note">비공개 계정 영상처럼 인터넷 주소로 재생이 안 될 때 쓰세요. 아카이브 안의 <b>data/tweets_media</b> 폴더(또는 아카이브 폴더 전체)를 선택하면, 내가 올린 영상·움짤을 <b>내 기기의 파일</b>로 재생해요. 파일은 어디에도 업로드되지 않고, 이 창을 닫으면 연결이 풀려서 접속할 때마다 다시 선택해야 해요. (컴퓨터 브라우저 권장)</p>
         <input type="file" id="mediaFolderInput" webkitdirectory multiple onchange="linkMediaFolder(this.files); this.value='';">
         <div id="mediaFolderMsg" class="small-note"></div>
         <hr style="border-color:var(--line); margin:15px 0;">
 
-        <h4>📦 사진 백업 (내 기기로 내려받기)</h4>
+        <h4>사진 백업 (내 기기로 내려받기)</h4>
         <p class="small-note">트윗을 지우기 <b>전에</b> 저장된 모든 트윗의 사진을 ZIP 파일로 내려받아요. (인용·답글 대상으로 이미 불러온 남의 사진도 포함) 사진은 원본 크기로 받고, 용량이 크면 여러 개 ZIP으로 나뉘어요. <b>컴퓨터에서 하시길 권장해요</b>(폰은 메모리가 부족할 수 있어요). 여러 파일 내려받기 허용 창이 뜨면 "허용"을 눌러 주세요.</p>
         <label style="font-size:13px;"><input type="checkbox" id="backupVideo"> 영상·움짤 파일도 포함 (용량 아주 커질 수 있어요)</label>
         <div style="display:flex; gap:8px; margin:8px 0;">
-            <button class="btn" style="flex:1;" onclick="startPhotoBackup()">📦 백업 시작</button>
+            <button class="btn" style="flex:1;" onclick="startPhotoBackup()">백업 시작</button>
             <button class="btn btn-secondary" style="flex:0 0 auto;" onclick="backupCancel = true;">중지</button>
         </div>
-        <button class="btn btn-secondary" style="width:100%; font-size:13px;" onclick="exportPhotoUrls()">🔗 사진 주소 목록만 내보내기 (다운로드 프로그램용)</button>
+        <button class="btn btn-secondary" style="width:100%; font-size:13px;" onclick="exportPhotoUrls()">사진 주소 목록만 내보내기 (다운로드 프로그램용)</button>
         <div id="backupMsg" class="small-note" style="margin-top:8px;"></div>
         <hr style="border-color:var(--line); margin:15px 0;">
 
-        <h4>☁️ 동기화</h4>
+        <h4>북마크 사진 옮기기</h4>
+        <p class="small-note">북마크 사진 ZIP을 올리면 사진은 <b>원본 그대로 이 기기의 브라우저에만</b> 저장돼요(서버에는 안 올라가요). 다른 기기에서도 보고 싶으면, 사진이 있는 기기에서 아래 버튼으로 ZIP을 내려받아 다른 기기로 옮긴 뒤(에어드롭, 클라우드 드라이브, 카톡 등) 그 기기에서 "사진 ZIP 불러오기"로 올리세요. 브라우저 데이터를 지우면 사진도 같이 지워지니, 내려받은 ZIP은 보관해 두세요.</p>
+        <button class="btn btn-secondary" style="width:100%; margin-bottom:8px;" onclick="exportLocalPhotos()">이 기기의 북마크 사진 ZIP으로 내려받기</button>
+        <div class="small-note" style="margin:6px 0 2px;">사진 ZIP 불러오기 (위 버튼으로 내려받은 ZIP)</div>
+        <input type="file" accept=".zip" multiple onchange="restoreLocalPhotos(this.files); this.value='';">
+        <div id="localPhotoMsg" class="small-note" style="margin-top:6px;"></div>
+        <hr style="border-color:var(--line); margin:15px 0;">
+
+        <h4>동기화</h4>
         <p class="small-note">다른 기기에서 바꾼 분류나 새로 올린 트윗이 안 보일 때 눌러 주세요.</p>
         <div style="display:flex; gap:8px; flex-wrap:wrap;">
             <button class="btn" onclick="syncNow()">지금 동기화</button>
@@ -333,16 +342,16 @@
         </div>
         <hr style="border-color:var(--line); margin:15px 0;">
 
-        <h4>🏷️ 카테고리 관리</h4>
+        <h4>카테고리 관리</h4>
         <div style="display:flex; gap:8px;">
             <input type="text" id="newCatInput" placeholder="새 카테고리 명" style="margin:0;" onkeypress="if(event.keyCode==13) addCategory();">
             <button class="btn" style="width:90px;" onclick="addCategory()">추가</button>
         </div>
-        <p class="small-note">✏️로 이름을 바꾸고 🗑️로 지울 수 있어요. 지운 카테고리의 트윗은 '미분류'로 옮겨져요. (숫자는 트윗 개수)</p>
+        <p class="small-note">수정 버튼으로 이름을 바꾸고 삭제 버튼으로 지울 수 있어요. 지운 카테고리의 트윗은 '미분류'로 옮겨져요. (숫자는 트윗 개수)</p>
         <div class="cat-chip-group" id="catChipList"></div>
         <hr style="border-color:var(--line); margin:15px 0;">
 
-        <h4>🗂️ 예전 기록 가져오기 (선택)</h4>
+        <h4>예전 기록 가져오기 (선택)</h4>
         <p class="small-note" id="legacyInfo"></p>
         <button class="btn" id="legacyAutoBtn" style="display:none; margin-bottom:8px;" onclick="importLegacyAuto()">이 브라우저의 예전 기록을 클라우드로 옮기기</button>
         <textarea id="legacyPaste" class="paste-box" placeholder="(선택) 가이드 9단계에서 복사한 내용을 여기에 붙여넣기"></textarea>
@@ -362,7 +371,7 @@
     
     <div id="pageSelectControl" style="display:none; margin-bottom:8px;">
         <button class="btn btn-secondary" style="width:100%; font-size:13px;" onclick="toggleSelectCurrentPage()">현재 페이지 전체 선택 / 해제</button>
-        <button class="btn btn-secondary" style="width:100%; font-size:13px; margin-top:6px;" onclick="toggleAllThreads()">🧵 이 페이지 타래 모두 접기 / 펼치기</button>
+        <button class="btn btn-secondary" style="width:100%; font-size:13px; margin-top:6px;" onclick="toggleAllThreads()">이 페이지 타래 모두 접기 / 펼치기</button>
     </div>
 
     <div class="pagination" id="topPagination" style="display:none;">
@@ -449,15 +458,15 @@
             $('gateMsg').innerText = msg;
             $('gateBarFill').style.width = Math.round((frac || 0) * 100) + '%';
         } else {
-            $('syncBadge').innerText = '🔄 ' + msg;
+            $('syncBadge').innerText = '' + msg;
         }
     }
     function updateBadge() {
         const el = $('syncBadge');
         if (!el || busy) return;
-        if (pendingWrites > 0) el.innerText = '☁️ 저장 중…';
-        else if (writeError) el.innerText = '⚠️ 저장 실패 — 인터넷 연결을 확인해 주세요';
-        else el.innerText = '☁️ 모두 저장됨';
+        if (pendingWrites > 0) el.innerText = '저장 중…';
+        else if (writeError) el.innerText = '저장 실패 — 인터넷 연결을 확인해 주세요';
+        else el.innerText = '모두 저장됨';
     }
     window.addEventListener('beforeunload', e => {
         if (pendingWrites > 0) { e.preventDefault(); e.returnValue = ''; }
@@ -472,13 +481,13 @@
 
     function loginErrorMsg(e) {
         const c = (e && e.code) || '';
-        if (c === 'auth/unauthorized-domain') return '⚠️ 이 사이트 주소가 Firebase에 등록되지 않았어요. (가이드 7단계: 승인된 도메인 추가)';
-        if (c === 'auth/operation-not-allowed') return '⚠️ Firebase에서 Google 로그인이 켜져 있지 않아요. (가이드 3단계)';
+        if (c === 'auth/unauthorized-domain') return '이 사이트 주소가 Firebase에 등록되지 않았어요. (가이드 7단계: 승인된 도메인 추가)';
+        if (c === 'auth/operation-not-allowed') return 'Firebase에서 Google 로그인이 켜져 있지 않아요. (가이드 3단계)';
         return '로그인에 실패했어요: ' + (c || (e && e.message) || e);
     }
     function loadErrorMsg(e) {
         const c = (e && e.code) || '';
-        if (c === 'permission-denied') return '⚠️ 접근 권한이 없어요. 가이드 4단계의 보안 규칙에 적은 이메일과 같은 구글 계정으로 로그인했는지 확인해 주세요.';
+        if (c === 'permission-denied') return '접근 권한이 없어요. 가이드 4단계의 보안 규칙에 적은 이메일과 같은 구글 계정으로 로그인했는지 확인해 주세요.';
         return '불러오기에 실패했어요: ' + (c || (e && e.message) || e);
     }
 
@@ -507,7 +516,7 @@
     window.addEventListener('cloud-ready', onCloudReady);
     showGate('loading', 'Firebase 불러오는 중…');
     gateTimer = setTimeout(() => {
-        if (!cloudStarted) showGate('error', '⚠️ Firebase를 불러오지 못했어요. 인터넷 연결을 확인하고 다시 시도해 주세요.');
+        if (!cloudStarted) showGate('error', 'Firebase를 불러오지 못했어요. 인터넷 연결을 확인하고 다시 시도해 주세요.');
     }, 15000);
     if (window.cloud) onCloudReady();
 
@@ -540,14 +549,14 @@
     }
 
     function initAppUI() {
-        $('userLabel').innerText = '👤 ' + (currentUser.email || '');
+        $('userLabel').innerText = '' + (currentUser.email || '');
         renderCategoryChips(); updateCategorySelects(); updateBadge(); showLegacyPanel();
         bindDropZone();
         if (allTweets.length) {
             switchTab('search');
         } else {
             switchTab('data');
-            $('importMsg').innerText = '👋 처음이시네요! 위 칸에 트위터 아카이브의 tweets.js 파일을 올려주세요.';
+            $('importMsg').innerText = '처음이시네요! 위 칸에 트위터 아카이브의 tweets.js 파일을 올려주세요.';
         }
     }
 
@@ -837,13 +846,13 @@
                 loadedMaxSeq = Math.max(loadedMaxSeq, seq);
             }
             rebuildAll();
-            const done = `✅ 새 트윗 ${added}개를 추가했어요!` + (patched ? ` 영상 주소·원트 번호 ${patched}개를 보강했어요.` : '') + (acctChanged ? ` 계정 이름 ${acctChanged}개를 '${overrideName}'(으)로 바꿨어요.` : '') + ` (전체 ${allTweets.length}개)` + (failed.length ? ` / 읽지 못한 파일: ${failed.join(', ')}` : '');
+            const done = `새 트윗 ${added}개를 추가했어요!` + (patched ? ` 영상 주소·원트 번호 ${patched}개를 보강했어요.` : '') + (acctChanged ? ` 계정 이름 ${acctChanged}개를 '${overrideName}'(으)로 바꿨어요.` : '') + ` (전체 ${allTweets.length}개)` + (failed.length ? ` / 읽지 못한 파일: ${failed.join(', ')}` : '');
             msg(done);
             alert(done);
             switchTab('search');
         } catch (err) {
             console.error(err);
-            msg('⚠️ 저장 중 오류가 났어요: ' + (err.code || err.message || err) + ' — 같은 파일을 다시 올리면 이어서 저장돼요.');
+            msg('저장 중 오류가 났어요: ' + (err.code || err.message || err) + ' — 같은 파일을 다시 올리면 이어서 저장돼요.');
         } finally {
             busy = false; updateBadge();
         }
@@ -1130,7 +1139,7 @@
         const target = (cand.length ? cand : entries[idx].items).reduce((a, b) => dOf(b) < dOf(a) ? b : a);
         const card = document.querySelector(`#tweetResults .tweet-card[data-id="${target.id_str}"]`);
         const info = outOfRange ? '그 날짜 쪽엔 더 없어서 가장 끝 트윗으로 갔어요' : `가장 가까운 트윗: ${fmtDate(target.created_at)}`;
-        $('statusInfo').innerText = `📅 ${v} 위치로 이동했어요 (${info}) · 페이지를 넘기면 앞뒤 날짜가 이어져요`;
+        $('statusInfo').innerText = `${v} 위치로 이동했어요 (${info}) · 페이지를 넘기면 앞뒤 날짜가 이어져요`;
         if (card) { card.scrollIntoView({ block: 'center' }); card.classList.remove('jump-flash'); void card.offsetWidth; card.classList.add('jump-flash'); }
         else window.scrollTo({ top: 0 });
     }
@@ -1249,7 +1258,7 @@
         if (currentMode === 'thread') {
             $('statusInfo').innerText = `연결된 타래: ${currentMatchedCount}개 그룹 (트윗 ${currentItemCount}개) · 한 페이지에 50개 이상, 타래는 끊지 않고 통째로 보여줘요`;
         } else if (currentMode === 'random') {
-            $('statusInfo').innerText = `🎲 조건에 맞는 ${randomPoolCount}개 중 랜덤 ${currentMatchedCount}개 (페이지당 약 ${PAGE_SIZE}개) · 다시 누르면 새로 뽑아요`;
+            $('statusInfo').innerText = `조건에 맞는 ${randomPoolCount}개 중 랜덤 ${currentMatchedCount}개 (페이지당 약 ${PAGE_SIZE}개) · 다시 누르면 새로 뽑아요`;
         } else {
             $('statusInfo').innerText = `총 ${allTweets.length}개 중 조건 결과: ${currentMatchedCount}개 (페이지당 약 ${PAGE_SIZE}개)`;
         }
@@ -1283,7 +1292,7 @@
             g.className = 'thread-group';
             const title = document.createElement('div');
             title.className = 'thread-title';
-            const setT = c => { title.innerText = c ? `▶ 🧵 타래 #${entry.num} (${items.length}개) — 눌러서 펼치기` : `▼ 🧵 타래 #${entry.num} (${items.length}개 이어짐) — 눌러서 접기`; };
+            const setT = c => { title.innerText = c ? `▶ 타래 #${entry.num} (${items.length}개) — 눌러서 펼치기` : `▼ 타래 #${entry.num} (${items.length}개 이어짐) — 눌러서 접기`; };
             g._set = c => { g.classList.toggle('collapsed', c); setT(c); };
             title.onclick = () => g._set(!g.classList.contains('collapsed'));
             setT(false);
@@ -1298,7 +1307,7 @@
         if (prevItems.length) {
             const btn = document.createElement('button');
             btn.className = 'btn btn-secondary thread-toggle';
-            btn.innerText = `⬆ 앞쪽 타래 ${prevItems.length}개 보기`;
+            btn.innerText = `앞쪽 타래 ${prevItems.length}개 보기`;
             const box = document.createElement('div');
             box.className = 'thread-prev';
             box.style.display = 'none';
@@ -1307,7 +1316,7 @@
                 if (!filled) { prevItems.forEach(t => box.appendChild(createTweetCard(t, currentTerms))); filled = true; }
                 const open = box.style.display === 'none';
                 box.style.display = open ? 'block' : 'none';
-                btn.innerText = open ? `⬆ 앞쪽 타래 접기` : `⬆ 앞쪽 타래 ${prevItems.length}개 보기`;
+                btn.innerText = open ? `앞쪽 타래 접기` : `앞쪽 타래 ${prevItems.length}개 보기`;
             };
             wrap.appendChild(btn);
             wrap.appendChild(box);
@@ -1319,7 +1328,7 @@
             const n = items.length - 1;
             const lb = document.createElement('button');
             lb.className = 'btn btn-secondary thread-label-btn';
-            const setL = c => { lb.innerText = c ? `▶ 🧵 아래로 이어진 타래 ${n}개 펼치기` : `▼ 🧵 아래로 이어진 타래 ${n}개 접기`; };
+            const setL = c => { lb.innerText = c ? `▶ 아래로 이어진 타래 ${n}개 펼치기` : `▼ 아래로 이어진 타래 ${n}개 접기`; };
             cont._set = c => { cont.classList.toggle('collapsed', c); setL(c); };
             lb.onclick = () => cont._set(!cont.classList.contains('collapsed'));
             setL(false);
@@ -1380,8 +1389,8 @@
         allTweets.forEach(t => { const c = tweetCategoryMap[t.id_str] || '미분류'; counts[c] = (counts[c] || 0) + 1; });
         $('catChipList').innerHTML = categories.map((c, i) => {
             const btns = c === '미분류'
-                ? '<span title="기본 분류라 수정/삭제할 수 없어요">🔒</span>'
-                : `<button class="chip-btn" title="이름 수정" onclick="renameCategory(${i})">✏️</button><button class="chip-btn" title="삭제" onclick="deleteCategory(${i})">🗑️</button>`;
+                ? '<span title="기본 분류라 수정/삭제할 수 없어요" style="font-size:12px; color:var(--sub);">기본</span>'
+                : `<button class="chip-btn" title="이름 수정" onclick="renameCategory(${i})">수정</button><button class="chip-btn" title="삭제" onclick="deleteCategory(${i})">삭제</button>`;
             return `<div class="cat-chip"><span>${esc(c)} <small>${counts[c] || 0}</small></span>${btns}</div>`;
         }).join('');
     }
@@ -1708,8 +1717,8 @@
         });
         Object.values(localVideos).forEach(a => a.sort((x, y) => x.name < y.name ? -1 : 1));
         $('mediaFolderMsg').innerText = n
-            ? `✅ 영상·움짤 파일 ${n}개 (트윗 ${Object.keys(localVideos).length}개분)를 연결했어요. 이제 다른 탭에서 확인해 보세요.`
-            : '⚠️ 영상 파일(mp4)을 찾지 못했어요. 아카이브의 data/tweets_media 폴더를 선택했는지 확인해 주세요.';
+            ? `영상·움짤 파일 ${n}개 (트윗 ${Object.keys(localVideos).length}개분)를 연결했어요. 이제 다른 탭에서 확인해 보세요.`
+            : '영상 파일(mp4)을 찾지 못했어요. 아카이브의 data/tweets_media 폴더를 선택했는지 확인해 주세요.';
     }
 
     function mountVideo(slot, t, m, vidx) {
@@ -1728,9 +1737,9 @@
                 (direct ? ` <a href="${esc(direct)}" target="_blank" rel="noopener" onclick="event.stopPropagation();" style="color:#1d9bf0; font-weight:bold;">[영상 주소 직접 열기]</a>` : '') + `</div>`;
         };
         const failPlay = () => {
-            if (fxId !== t.id_str) fail(`⚠️ 이 영상은 여기서 재생되지 않아요${code ? ` (오류 ${code})` : ''}. 트위터 서버가 막았거나 주소가 만료된 것 같아요.`);
-            else if (direct) fail(`⚠️ 저장된 영상 주소가 있는데 재생하지 못했어요${code ? ` (오류 ${code})` : ''}. 트위터 서버가 막은 것일 수 있어요(특히 비공개 계정). 설정 탭에서 영상 파일 폴더를 연결하면 재생돼요.`);
-            else fail('⚠️ 저장된 영상 주소가 없어요. 설정 탭에서 tweets.js를 다시 올리거나, 영상 파일 폴더를 연결해 주세요.');
+            if (fxId !== t.id_str) fail(`이 영상은 여기서 재생되지 않아요${code ? ` (오류 ${code})` : ''}. 트위터 서버가 막았거나 주소가 만료된 것 같아요.`);
+            else if (direct) fail(`저장된 영상 주소가 있는데 재생하지 못했어요${code ? ` (오류 ${code})` : ''}. 트위터 서버가 막은 것일 수 있어요(특히 비공개 계정). 설정 탭에서 영상 파일 폴더를 연결하면 재생돼요.`);
+            else fail('저장된 영상 주소가 없어요. 설정 탭에서 tweets.js를 다시 올리거나, 영상 파일 폴더를 연결해 주세요.');
         };
 
         // 재생 시도 순서: 연결한 내 파일 → 아카이브에 저장된 주소 → FixTweet
@@ -1762,7 +1771,7 @@
         };
         const viaFx = () => {
             usingFx = true;
-            placeholder('⏳ 영상 불러오는 중...');
+            placeholder('영상 불러오는 중...');
             fetchVideoUrls(fxId).then(r => {
                 if (r.status === 'ok') build(r.videos[Math.min(vidx, r.videos.length - 1)].url);
                 else failPlay();
@@ -1771,7 +1780,7 @@
 
         if (sources.length) next();
         else {
-            placeholder('🎞️ 영상 (보이면 불러와요)');
+            placeholder('영상 (보이면 불러와요)');
             slot._load = viaFx;
             quoteObserver.observe(slot);
         }
@@ -1790,7 +1799,7 @@
                 ? `<video class="quote-video" data-gif="1" data-src="${esc(v.url)}" poster="${esc(v.thumb || '')}" loop muted playsinline preload="metadata"></video>`
                 : `<video class="quote-video" data-src="${esc(v.url)}" poster="${esc(v.thumb || '')}" controls playsinline preload="none"></video>`).join('')}</div>`
             : '';
-        const label = q.mediaOnly ? '💬 답글 단 원트' : '💬 인용한 원트';
+        const label = q.mediaOnly ? '답글 단 원트' : '인용한 원트';
         return `<div class="quote-embed-author">${label} · <a ${extAttrs(link)} onclick="event.stopPropagation();">${who || '원본 보기'}</a></div>
                 <div class="quote-text">${esc(d.text)}</div>${photos}${videos}`;
     }
@@ -1805,7 +1814,7 @@
             ? '원트를 찾을 수 없어요 (삭제됐거나 비공개 계정일 수 있어요).'
             : '원트를 불러오지 못했어요 (인터넷 연결 또는 서비스 문제일 수 있어요).';
         const retry = status === 'error' ? '<button class="btn btn-secondary quote-retry">다시 시도</button>' : '';
-        return `<div class="quote-loading">⚠️ ${msg}
+        return `<div class="quote-loading">${msg}
                     <a ${extAttrs(q.url)} onclick="event.stopPropagation();" style="color:#1d9bf0; font-weight:bold;">[원트 원본 보기]</a>${retry}</div>`;
     }
 
@@ -1824,7 +1833,7 @@
         // 1) 내 아카이브에 있는 트윗이면 바로 표시
         const own = rawById.get(q.id);
         if (own) {
-            box.innerHTML = `<div class="quote-embed-author">💬 인용한 원트 · 내 트윗 · ${fmtDate(own.created_at)}</div>
+            box.innerHTML = `<div class="quote-embed-author">인용한 원트 · 내 트윗 · ${fmtDate(own.created_at)}</div>
                              <div class="quote-text">${buildTweetContent(own, '').html}</div>`;
             return;
         }
@@ -1840,7 +1849,7 @@
                     const btn = box.querySelector('.quote-retry');
                     if (btn) btn.addEventListener('click', ev => {
                         ev.stopPropagation();
-                        box.innerHTML = '<div class="quote-loading">⏳ 원트 불러오는 중...</div>';
+                        box.innerHTML = '<div class="quote-loading">원트 불러오는 중...</div>';
                         box._load();
                     });
                 }
@@ -1916,7 +1925,7 @@
         const list = accountCounts();
         const keep = el.value;
         el.innerHTML = `<option value="ALL">전체 계정 (${allTweets.length})</option>` +
-            list.map(([a, n]) => `<option value="${esc(a)}">👤 ${esc(a)} (${n})</option>`).join('');
+            list.map(([a, n]) => `<option value="${esc(a)}">${esc(a)} (${n})</option>`).join('');
         el.value = keep;
         if (el.value !== keep) el.value = 'ALL';
     }
@@ -1941,7 +1950,7 @@
         const list = accountCounts();
         const sel = $('addAccountSelect');
         const keep = sel.value;
-        sel.innerHTML = list.map(([a]) => `<option value="${esc(a)}">${esc(a)}</option>`).join('') + '<option value="__new__">➕ 새 계정 입력…</option>';
+        sel.innerHTML = list.map(([a]) => `<option value="${esc(a)}">${esc(a)}</option>`).join('') + '<option value="__new__">새 계정 입력…</option>';
         sel.value = keep;
         if (sel.value !== keep) sel.value = list.length ? list[0][0] : '__new__';
         onAddAccountChange();
@@ -1990,14 +1999,14 @@
         const st = parseStatusUrl($('addLinkInput').value.trim());
         if (!st) { msg('트윗 주소(예: https://x.com/계정/status/123…)를 붙여넣어 주세요.'); return; }
         if (rawById.has(st.id)) { msg('이미 저장된 트윗이에요.'); return; }
-        msg('⏳ 불러오는 중…');
+        msg('불러오는 중…');
         fxGet(st.id, st.user).then(r => {
             const tw = r.json && r.json.tweet;
-            if (r.error) { msg('⚠️ 불러오지 못했어요. 인터넷 연결을 확인하고 다시 시도해 주세요.'); return; }
+            if (r.error) { msg('불러오지 못했어요. 인터넷 연결을 확인하고 다시 시도해 주세요.'); return; }
             if (!tw) {
                 msg(r.json && GONE_CODES.includes(r.json.code)
-                    ? '⚠️ 삭제됐거나 비공개 계정의 트윗이라 불러올 수 없어요. 비공개 계정 트윗은 아카이브로 올리거나, 아래에 직접 입력해 주세요.'
-                    : '⚠️ 불러오지 못했어요.');
+                    ? '삭제됐거나 비공개 계정의 트윗이라 불러올 수 없어요. 비공개 계정 트윗은 아카이브로 올리거나, 아래에 직접 입력해 주세요.'
+                    : '불러오지 못했어요.');
                 return;
             }
             const d = parseFx(tw);
@@ -2007,7 +2016,7 @@
             renderAddPreview();
             const dt = tw.created_timestamp ? new Date(tw.created_timestamp * 1000) : new Date(d.date);
             if (!isNaN(dt.getTime())) { const l = new Date(dt.getTime() - dt.getTimezoneOffset() * 60000); $('addDate').value = l.toISOString().slice(0, 16); }
-            msg(`✅ @${d.handle}의 트윗을 불러왔어요 (사진 ${d.photos.length}장${d.videos.length ? `, 영상 ${d.videos.length}개` : ''}). 아래에서 계정·분류를 고르고 "추가"를 눌러 주세요. 사진은 트위터에서 가져와 보여주는 방식이라, 원트가 지워지면 안 보일 수 있어요.`);
+            msg(`@${d.handle}의 트윗을 불러왔어요 (사진 ${d.photos.length}장${d.videos.length ? `, 영상 ${d.videos.length}개` : ''}). 아래에서 계정·분류를 고르고 "추가"를 눌러 주세요. 사진은 트위터에서 가져와 보여주는 방식이라, 원트가 지워지면 안 보일 수 있어요.`);
         });
     }
     function removeAddPhoto(i) { addPhotoData.splice(i, 1); renderAddPreview(); }
@@ -2017,7 +2026,7 @@
         for (const f of files) {
             if (addPhotoData.length >= 4) { msg('사진은 최대 4장까지예요.'); break; }
             try { msg('사진 줄이는 중…'); addPhotoData.push(await shrinkImage(f)); renderAddPreview(); msg(''); }
-            catch (e) { msg('⚠️ 사진을 불러오지 못했어요: ' + f.name); }
+            catch (e) { msg('사진을 불러오지 못했어요: ' + f.name); }
         }
     }
     function openLocalImage(src) {
@@ -2053,7 +2062,7 @@
         }
         $('addText').value = ''; addPhotoData = []; addLinked = null; $('addLinkInput').value = ''; $('addLinkMsg').innerText = ''; renderAddPreview();
         initAddForm();
-        msg(`✅ 추가했어요! (${account} · ${fmtDate(t.created_at)}) 통합 검색의 계정 선택에서 볼 수 있어요. 이어서 다른 트윗을 추가해도 돼요.`);
+        msg(`추가했어요! (${account} · ${fmtDate(t.created_at)}) 통합 검색의 계정 선택에서 볼 수 있어요. 이어서 다른 트윗을 추가해도 돼요.`);
     }
 
 
@@ -2064,7 +2073,7 @@
     function collectBackupItems(withVideo) {
         const items = [], seen = new Set();
         const add = (url, folder, base, tid, src) => {
-            if (!url || seen.has(url)) return;
+            if (!url || seen.has(url) || String(url).startsWith('local:')) return;
             seen.add(url);
             items.push({ url, folder, base, tid, src });
         };
@@ -2096,7 +2105,7 @@
         if (!items.length) { $('backupMsg').innerText = '내보낼 사진이 없어요.'; return; }
         const txt = items.map(i => origUrl(i.url)).filter(u => /^https?:/.test(u)).join('\n');
         saveBlob(new Blob([txt], { type: 'text/plain;charset=utf-8' }), '사진주소목록.txt');
-        $('backupMsg').innerText = `✅ 사진 주소 ${items.length}개를 목록 파일로 내려받았어요. (한 줄에 주소 하나 · 데이터 형식 사진은 제외)`;
+        $('backupMsg').innerText = `사진 주소 ${items.length}개를 목록 파일로 내려받았어요. (한 줄에 주소 하나 · 데이터 형식 사진은 제외)`;
     }
     function loadJsZip() {
         if (window.JSZip) return Promise.resolve();
@@ -2153,7 +2162,7 @@
                 }
                 // 처음 12개가 전부 실패하면 브라우저가 막고 있는 것
                 if (tried >= 12 && okCount === 0) {
-                    msg('⚠️ 사진을 하나도 내려받지 못했어요. 브라우저가 다른 사이트의 사진 받기를 막고 있는 것 같아요. 위의 "🔗 사진 주소 목록만 내보내기"로 주소 목록을 받아서 다운로드 프로그램(예: 크롬 확장 DownThemAll, 또는 gallery-dl/aria2)에 넣어 받아 주세요.');
+                    msg('사진을 하나도 내려받지 못했어요. 브라우저가 다른 사이트의 사진 받기를 막고 있는 것 같아요. 위의 "사진 주소 목록만 내보내기"로 주소 목록을 받아서 다운로드 프로그램(예: 크롬 확장 DownThemAll, 또는 gallery-dl/aria2)에 넣어 받아 주세요.');
                     backupRunning = false; return;
                 }
                 msg(`내려받는 중… ${done} / ${items.length} (실패 ${fails.length}) · 현재 파트 ${(bytes / 1048576).toFixed(0)}MB`);
@@ -2162,10 +2171,10 @@
             if (fails.length) { zip.file('실패목록.txt', fails.join('\n')); rows.push(['"실패목록.txt"', '""', '""', '""'].join(',')); }
             await flush();
             msg(backupCancel
-                ? `⏹ 중지했어요. (${okCount}개 저장됨 · 이미 내려받은 ZIP은 그대로 쓸 수 있어요)`
-                : `✅ 끝났어요! ${okCount}개 저장, 실패 ${fails.length}개. ZIP ${part - 1}개를 내려받았어요.${fails.length ? ' 실패한 주소는 마지막 ZIP의 실패목록.txt에 있어요.' : ''} 트윗을 지우기 전에 ZIP을 열어서 사진이 잘 들어 있는지 꼭 확인하세요.`);
+                ? `중지했어요. (${okCount}개 저장됨 · 이미 내려받은 ZIP은 그대로 쓸 수 있어요)`
+                : `끝났어요! ${okCount}개 저장, 실패 ${fails.length}개. ZIP ${part - 1}개를 내려받았어요.${fails.length ? ' 실패한 주소는 마지막 ZIP의 실패목록.txt에 있어요.' : ''} 트윗을 지우기 전에 ZIP을 열어서 사진이 잘 들어 있는지 꼭 확인하세요.`);
         } catch (e) {
-            msg('⚠️ 백업 중 문제가 생겼어요: ' + (e && e.message ? e.message : e));
+            msg('백업 중 문제가 생겼어요: ' + (e && e.message ? e.message : e));
         }
         backupRunning = false;
     }
@@ -2350,6 +2359,113 @@
             });
         });
     }
+    /* ---------- 북마크 사진: 이 기기 브라우저(IndexedDB)에 원본 그대로 저장 ---------- */
+    // 트윗에는 'local:번호_z0' 같은 이름표만 저장되고, 실제 사진 파일은 이 기기에만 있어요.
+    const IMG_MIME = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp', gif: 'image/gif' };
+    let imgDbP = null;
+    function imgDb() {
+        if (!imgDbP) imgDbP = new Promise(resolve => {
+            try {
+                const rq = indexedDB.open('twtarchive-photos', 1);
+                rq.onupgradeneeded = () => { rq.result.createObjectStore('imgs', { keyPath: 'k' }); };
+                rq.onsuccess = () => resolve(rq.result);
+                rq.onerror = () => resolve(null);
+                rq.onblocked = () => resolve(null);
+            } catch (e) { resolve(null); }
+        });
+        return imgDbP;
+    }
+    async function imgPut(k, blob) {
+        const db = await imgDb();
+        if (!db) throw new Error('이 브라우저에서는 사진 저장소를 쓸 수 없어요 (사생활 보호 모드일 수 있어요)');
+        return new Promise((res, rej) => {
+            const tx = db.transaction('imgs', 'readwrite');
+            tx.objectStore('imgs').put({ k, blob, type: blob.type });
+            tx.oncomplete = () => res(true);
+            tx.onerror = tx.onabort = () => rej(tx.error || new Error('사진을 저장하지 못했어요 (저장 공간이 부족할 수 있어요)'));
+        });
+    }
+    async function imgGet(k) {
+        const db = await imgDb(); if (!db) return null;
+        return new Promise(res => { try { const r = db.transaction('imgs').objectStore('imgs').get(k); r.onsuccess = () => res(r.result || null); r.onerror = () => res(null); } catch (e) { res(null); } });
+    }
+    async function imgHas(k) {
+        const db = await imgDb(); if (!db) return false;
+        return new Promise(res => { try { const r = db.transaction('imgs').objectStore('imgs').count(k); r.onsuccess = () => res(r.result > 0); r.onerror = () => res(false); } catch (e) { res(false); } });
+    }
+    async function imgKeys() {
+        const db = await imgDb(); if (!db) return [];
+        return new Promise(res => { try { const r = db.transaction('imgs').objectStore('imgs').getAllKeys(); r.onsuccess = () => res(r.result || []); r.onerror = () => res([]); } catch (e) { res([]); } });
+    }
+    const imgUrlCache = new Map();
+    async function imgObjectUrl(k) {
+        if (imgUrlCache.has(k)) return imgUrlCache.get(k);
+        const rec = await imgGet(k);
+        if (!rec || !rec.blob) return '';
+        const u = URL.createObjectURL(rec.blob);
+        imgUrlCache.set(k, u);
+        return u;
+    }
+    // 이 앱에서 내보낸 사진 ZIP(파일명 = 트윗번호_z번호.확장자)이면 이 기기 저장소로 복원
+    async function restoreLocalPhotoEntries(entries) {
+        const rest = []; let restored = 0;
+        for (const en of entries) {
+            const m = en.path.match(/(?:^|\/)(\d{15,20}_z\d+)\.(jpg|jpeg|png|webp|gif)$/i);
+            if (!m) { rest.push(en); continue; }
+            try { await imgPut(m[1], new Blob([await en.e.async('arraybuffer')], { type: IMG_MIME[m[2].toLowerCase()] })); restored++; }
+            catch (e) { rest.push(en); }
+        }
+        return { restored, remaining: rest };
+    }
+    async function restoreLocalPhotos(fileList) {
+        const files = Array.from(fileList || []).filter(f => /\.zip$/i.test(f.name));
+        const msg = t => { $('localPhotoMsg').innerText = t; };
+        if (!files.length) { msg('ZIP 파일을 선택해 주세요.'); return; }
+        try {
+            await loadJsZip();
+            let total = 0;
+            for (const f of files) {
+                msg(`ZIP 읽는 중… ${f.name}`);
+                const z = await JSZip.loadAsync(f);
+                const entries = [];
+                z.forEach((path, e) => { if (!e.dir) entries.push({ path, e }); });
+                const r = await restoreLocalPhotoEntries(entries);
+                total += r.restored;
+            }
+            if (typeof renderCurrentPage === 'function' && currentEntries.length) renderCurrentPage();
+            msg(`이 기기에 사진 ${total}장을 복원했어요.` + (total ? '' : ' (이 앱에서 내려받은 사진 ZIP이 맞는지 확인해 주세요)'));
+        } catch (e) { msg('사진을 복원하지 못했어요: ' + (e && e.message ? e.message : e)); }
+    }
+    async function exportLocalPhotos() {
+        const msg = t => { $('localPhotoMsg').innerText = t; };
+        try {
+            const keys = await imgKeys();
+            if (!keys.length) { msg('이 기기에 저장된 북마크 사진이 없어요.'); return; }
+            await loadJsZip();
+            let zip = new JSZip(), bytes = 0, part = 1, inPart = 0, done = 0;
+            const flush = async () => {
+                if (!inPart) return;
+                const blob = await zip.generateAsync({ type: 'blob', compression: 'STORE' });
+                saveBlob(blob, `북마크사진_파트${part}.zip`);
+                await new Promise(r => setTimeout(r, 800));
+                part++; zip = new JSZip(); bytes = 0; inPart = 0;
+            };
+            for (const k of keys) {
+                const rec = await imgGet(k);
+                done++;
+                if (!rec || !rec.blob) continue;
+                const ty = rec.blob.type || '';
+                const ext = ty.includes('png') ? 'png' : ty.includes('webp') ? 'webp' : ty.includes('gif') ? 'gif' : 'jpg';
+                zip.file(`${k}.${ext}`, rec.blob);
+                bytes += rec.blob.size; inPart++;
+                msg(`사진 묶는 중… ${done} / ${keys.length}`);
+                if (bytes > 200 * 1024 * 1024) await flush();
+            }
+            await flush();
+            msg(`사진 ${keys.length}장을 ZIP ${part - 1}개로 내려받았어요. 다른 기기의 같은 메뉴에서 "사진 ZIP 불러오기"로 올리면 그 기기에서도 보여요.`);
+        } catch (e) { msg('내려받지 못했어요: ' + (e && e.message ? e.message : e)); }
+    }
+
     async function importBookmarkFiles(fileList) {
         const files = Array.from(fileList || []);
         if (!files.length) return;
@@ -2361,14 +2477,15 @@
             await loadChunks(false); rebuildAll();
             const all = new Map();
             const unreadable = [];
-            for (const f of files) {
+            const zipFiles = files.filter(f => /\.zip$/i.test(f.name));
+            for (const f of files.filter(f => !/\.zip$/i.test(f.name))) {
                 let items = [];
                 try { items = parseBookmarkText(await f.text()); } catch (e) { items = []; }
                 if (!items.length) unreadable.push(f.name);
                 items.forEach(it => { const prev = all.get(it.id); if (!prev || (prev.text === undefined && it.text !== undefined)) all.set(it.id, it); });
             }
-            if (!all.size) {
-                msg(`⚠️ 파일에서 트윗을 찾지 못했어요. (${unreadable.join(', ')}) 파일 형식을 알려주시면 맞춰드릴게요. 파일 맨 앞부분 몇 줄을 복사해서 보내주세요.`);
+            if (!all.size && !zipFiles.length) {
+                msg(`파일에서 트윗을 찾지 못했어요. (${unreadable.join(', ')}) 파일 형식을 알려주시면 맞춰드릴게요. 파일 맨 앞부분 몇 줄을 복사해서 보내주세요.`);
                 busy = false; return;
             }
             const items = Array.from(all.values());
@@ -2400,26 +2517,117 @@
                     gone++;
                 } else { netFail++; it._skip = true; }
             })));
+            // ZIP(내려받은 사진)이 있으면 파일 이름 속 트윗 번호(또는 사진 파일명)로 트윗에 연결
+            let zipLinked = 0, zipExisting = 0, zipVideoSkip = 0, zipUnmatched = 0, zipRestored = 0, zipFail = 0, zipErr = '';
+            if (zipFiles.length) {
+                try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}
+                await loadJsZip();
+                let entries = [];
+                for (const zf of zipFiles) {
+                    msg(`ZIP 읽는 중… ${zf.name}`);
+                    const z = await JSZip.loadAsync(zf);
+                    z.forEach((path, e) => { if (!e.dir) entries.push({ path, e }); });
+                }
+                const rest = await restoreLocalPhotoEntries(entries);      // 이 앱에서 내보낸 사진 ZIP이면 그대로 복원
+                zipRestored = rest.restored; entries = rest.remaining;
+                const knownIds = new Set(items.map(i => i.id));
+                rawById.forEach((t, id) => { if (t.bm) knownIds.add(id); });
+                const stemOf = u => String(u || '').split('?')[0].split('/').pop().replace(/\.[^.]+$/, '').toLowerCase();
+                const stemOwner = new Map();
+                items.forEach(it => (it.media || []).forEach(m => { const st = stemOf(m.url); if (st.length >= 8) stemOwner.set(st, it.id); }));
+                const byTweet = new Map();
+                const mimeOf = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp', gif: 'image/gif' };
+                entries.forEach(({ path, e }) => {
+                    const ext = ((path.match(/\.([A-Za-z0-9]+)$/) || [])[1] || '').toLowerCase();
+                    if (!mimeOf[ext]) { if (/^(mp4|mov|m4v)$/.test(ext)) zipVideoSkip++; return; }
+                    let id = (path.match(/\d{15,20}/g) || []).find(x => knownIds.has(x));
+                    if (!id) {
+                        const base = path.split('/').pop().replace(/\.[^.]+$/, '').toLowerCase();
+                        stemOwner.forEach((owner, st) => { if (!id && base.includes(st)) id = owner; });
+                    }
+                    if (!id) { zipUnmatched++; return; }
+                    if (!byTweet.has(id)) byTweet.set(id, []);
+                    byTweet.get(id).push({ path, e, ext });
+                });
+                const builtMap = new Map(built.map(t => [t.id_str, t]));
+                let n = 0;
+                for (const [id, list] of byTweet) {
+                    n++; msg(`ZIP 사진을 이 기기에 저장하는 중… ${n} / ${byTweet.size}`);
+                    let tw = builtMap.get(id), isNew = true;
+                    if (!tw) {
+                        const old = rawById.get(id);
+                        if (!old || !old.bm) continue;
+                        const first = (((old.extended_entities || {}).media || [])[0] || {}).media_url_https || '';
+                        if (first.startsWith('local:') && await imgHas(first.slice(6))) continue;   // 이미 연결됨
+                        tw = Object.assign({}, old); isNew = false;
+                    }
+                    list.sort((a, b) => a.path.localeCompare(b.path, undefined, { numeric: true }));
+                    const urls = [];
+                    try {
+                        for (const f of list.slice(0, 4)) {
+                            const key = id + '_z' + urls.length;
+                            await imgPut(key, new Blob([await f.e.async('arraybuffer')], { type: mimeOf[f.ext] }));    // 원본 그대로 저장
+                            urls.push('local:' + key);
+                        }
+                    } catch (er) { zipFail++; zipErr = er && er.message ? er.message : String(er); if (!urls.length) continue; }
+                    if (!urls.length) continue;
+                    const keep = ((tw.extended_entities || {}).media || []).filter(m => m.type === 'video' || m.type === 'animated_gif');
+                    tw.extended_entities = { media: urls.map((u, i) => ({ id_str: id + '_z' + i, type: 'photo', media_url_https: u })).concat(keep) };
+                    tw.full_text = String(tw.full_text || '').replace(/\s*https?:\/\/t\.co\/\w+\s*$/, '');
+                    delete tw._lc;
+                    if (!isNew) { built.push(tw); zipExisting++; }
+                    zipLinked++;
+                }
+            }
             built.forEach(t => rawById.set(t.id_str, t));
             if (built.length) persistTweetList(built);
             rebuildAll();
-            const added = built.length - photoFixed;
-            msg(`✅ 통합 검색의 계정 "북마크"에 ${added}개를 추가했어요. (★ 북마크 탭에는 넣지 않았어요${photoFixed ? ` · 사진 채운 기존 항목 ${photoFixed}개` : ''}${fetched ? ` · 인터넷에서 ${fetched}개 불러옴` : ''}${gone ? ` · 내용을 못 가져온 것 ${gone}개는 주소만 저장` : ''})` +
-                (netFail ? ` ⚠️ 연결 문제로 ${netFail}개는 건너뛰었어요. 같은 파일을 다시 올리면 이어서 불러와요.` : '') +
-                (unreadable.length ? ` ⚠️ 읽지 못한 파일: ${unreadable.join(', ')}` : ''));
+            const added = built.length - photoFixed - zipExisting;
+            msg(`통합 검색의 계정 "북마크"에 ${added}개를 추가했어요. (★ 북마크 탭에는 넣지 않았어요${photoFixed ? ` · 사진 채운 기존 항목 ${photoFixed}개` : ''}${zipFiles.length ? ` · ZIP 사진을 ${zipLinked}개 트윗에 연결(이 기기에 원본으로 저장)` + (zipRestored ? ` · 내보냈던 사진 ${zipRestored}장 복원` : '') + (zipFail ? ` · 저장 실패 ${zipFail}개: ${zipErr}` : '') + (zipUnmatched ? ` (맞는 트윗을 못 찾은 사진 ${zipUnmatched}장)` : '') + (zipVideoSkip ? ` (영상 ${zipVideoSkip}개는 건너뜀)` : '') : ''}${fetched ? ` · 인터넷에서 ${fetched}개 불러옴` : ''}${gone ? ` · 내용을 못 가져온 것 ${gone}개는 주소만 저장` : ''})` +
+                (netFail ? ` 연결 문제로 ${netFail}개는 건너뛰었어요. 같은 파일을 다시 올리면 이어서 불러와요.` : '') +
+                (unreadable.length ? ` 읽지 못한 파일: ${unreadable.join(', ')}` : ''));
         } catch (e) {
-            msg('⚠️ 올리는 중 문제가 생겼어요: ' + (e && e.message ? e.message : e));
+            msg('올리는 중 문제가 생겼어요: ' + (e && e.message ? e.message : e));
         }
         busy = false;
+        fillBookmarkPhotos($('bookmarkMsg').innerText);      // 사진 주소가 없던 것은 이어서 인터넷에서 채워 봐요
     }
-    // 예전에 파일로 가져오면서 ★가 같이 눌린 트윗들을 한 번에 해제 (직접 누른 ★도 같이 풀려요)
-    function unstarImportedBookmarks() {
-        const ids = allTweets.filter(t => t.bm && bookmarkSet.has(t.id_str)).map(t => t.id_str);
-        if (!ids.length) { alert('해제할 항목이 없어요.'); return; }
-        if (!confirm(`파일로 가져온 트윗 중 ★가 눌린 ${ids.length}개의 ★를 해제할까요?\n(트윗은 지워지지 않고 통합 검색의 계정 "북마크"에 그대로 남아요. 그중에 직접 ★ 누른 게 있었다면 그것도 풀려요.)`)) return;
-        const ops = ids.map(id => { bookmarkSet.delete(id); return { k: 'bm', id, v: false }; });
-        cloudWrite(() => cloud.setState(ops));
-        runListView();
+    // 파일에 사진 주소가 없던 북마크: 트윗 번호로 인터넷에서 사진·영상을 다시 불러와 채우기
+    async function fillBookmarkPhotos(prefix) {
+        const msg = t => { $('bookmarkMsg').innerText = (prefix ? prefix + '\n' : '') + t; };
+        if (busy) { alert('다른 작업이 진행 중이에요. 잠시 후 다시 시도해 주세요.'); return; }
+        const list = allTweets.filter(t => t.bm && !getMediaList(t).length && /https?:\/\/t\.co\//.test(t.full_text || ''));
+        if (!list.length) { if (!prefix) msg('사진을 채울 북마크가 없어요. (사진이 없고 글에 t.co 링크가 있는 가져온 트윗이 대상이에요)'); return; }
+        busy = true;
+        let done = 0, fail = 0, gone = 0;
+        const updated = [];
+        try {
+            await Promise.all(list.map(t => fetchQuoteData(t.id_str, t.src_author || 'i', false).then(r => {
+                done++; msg(`사진 불러오는 중… ${done} / ${list.length}`);
+                if (r.status === 'error') { fail++; return; }
+                if (r.status !== 'ok') { gone++; return; }
+                const d = r.data;
+                const media = bmMedia(d.photos || []).concat((d.videos || []).map(v => ({ type: v.gif ? 'animated_gif' : 'video', url: v.thumb || '', video_url: v.url })));
+                if (!media.length) return;
+                const nt = Object.assign({}, t);
+                delete nt._lc;
+                nt.extended_entities = { media: media.map((m, i) => {
+                    const o = { id_str: t.id_str + '_' + i, type: m.type, media_url_https: m.url || '' };
+                    if (m.video_url) o.video_url = m.video_url;
+                    return o;
+                }) };
+                nt.full_text = String(t.full_text || '').replace(/\s*https?:\/\/t\.co\/\w+\s*$/, '');     // 사진이 대신 보이니 끝의 t.co 링크는 지워요
+                updated.push(nt);
+            })));
+            updated.forEach(nt => rawById.set(nt.id_str, nt));
+            if (updated.length) persistTweetList(updated);
+            rebuildAll();
+            msg(`사진·영상 ${updated.length}개를 채웠어요. (확인한 ${list.length}개 중 사진 없는 글 ${list.length - updated.length - gone - fail}개` +
+                `${gone ? ` · 삭제/비공개 ${gone}개` : ''}${fail ? ` · 연결 문제로 못 가져온 것 ${fail}개 (다시 누르면 이어서 해요)` : ''})`);
+        } catch (e) {
+            msg('사진 불러오는 중 문제가 생겼어요: ' + (e && e.message ? e.message : e));
+        }
+        busy = false;
     }
     function randomBookmarks() {
         const terms = parseTerms($('listSearchInput').value);
@@ -2577,7 +2785,7 @@
         const quoteBoxesHtml = built.quotes
             .map((q, i) => q.mediaOnly
                 ? `<div class="quote-embed-box" data-qi="${i}" style="display:none;"></div>`
-                : `<div class="quote-embed-box" data-qi="${i}"><div class="quote-loading">⏳ 원트 불러오는 중...</div></div>`)
+                : `<div class="quote-embed-box" data-qi="${i}"><div class="quote-loading">원트 불러오는 중...</div></div>`)
             .join('');
 
         const origId = isRT(t) ? rtOrigId(t) : '';
@@ -2593,7 +2801,7 @@
                     mediaHtml += `<div class="video-slot" data-mi="${i}" data-vi="${vi++}"></div>`;
                 } else {
                     const imgSrc = m.media_url_https || m.media_url || `data/tweet_media/${t.id_str}-${m.id_str || '1'}.jpg`;
-                    if (imgSrc.startsWith('data:')) { mediaHtml += `<img class="tweet-media-img local-img" data-mi="${i}">`; return; }
+                    if (imgSrc.startsWith('data:') || imgSrc.startsWith('local:')) { mediaHtml += `<img class="tweet-media-img local-img" data-mi="${i}">`; return; }
                     mediaHtml += `<img src="${imgSrc}" class="tweet-media-img" loading="lazy" onclick="event.stopPropagation(); window.open('${imgSrc}', '_blank');" onerror="this.style.display='none';">`;
                 }
             });
@@ -2616,7 +2824,7 @@
         // 링크 버튼: RT를 취소하면 내 RT 주소는 사라지므로, 원트 번호가 없는 RT는 검색/계정 링크로 대체
         let linkUrl = twitterUrl, linkLabel = origId ? '원트 원문' : '트위터 원문';
         if (isRT(t) && !origId) {
-            if (rtSearchUrl) { linkUrl = rtSearchUrl; linkLabel = '🔎 원트 찾기'; }
+            if (rtSearchUrl) { linkUrl = rtSearchUrl; linkLabel = '원트 찾기'; }
             else if (rtProfileUrl) { linkUrl = rtProfileUrl; linkLabel = '원트 계정'; }
         }
         const card = document.createElement('div');
@@ -2636,11 +2844,11 @@
             <div class="tweet-header">
                 <div>
                     <span class="tw-name" data-acct="${esc(acctName)}">${esc(acctName)}</span><span class="tweet-meta"> · ${fmtDate(t.created_at)}</span>
-                    ${isRT(t) ? '<span style="color:#00ba7c; font-size:11px; margin-left:6px;">🔄 RT</span>' : ''}
-                    ${t.edited ? '<span style="color:var(--sub); font-size:11px; margin-left:6px;">✏️ 수정됨</span>' : ''}
-                    ${t.manual ? '<span style="color:var(--sub); font-size:11px; margin-left:6px;">✍️ 직접 추가</span>' : ''}
-                    ${t.src_author ? `<span style="color:var(--sub); font-size:11px; margin-left:6px;">🔗 @${esc(t.src_author)}</span>` : ''}
-                    ${hasMedia(t) ? `<span style="color:#b7791f; font-size:11px; margin-left:6px;">${hasVideo ? '🎞️ 영상' : '📷 사진'}</span>` : ''}
+                    ${isRT(t) ? '<span style="color:#00ba7c; font-size:11px; margin-left:6px;">RT</span>' : ''}
+                    ${t.edited ? '<span style="color:var(--sub); font-size:11px; margin-left:6px;">수정됨</span>' : ''}
+                    ${t.manual ? '<span style="color:var(--sub); font-size:11px; margin-left:6px;">직접 추가</span>' : ''}
+                    ${t.src_author ? `<span style="color:var(--sub); font-size:11px; margin-left:6px;">@${esc(t.src_author)}</span>` : ''}
+                    ${hasMedia(t) ? `<span style="color:#b7791f; font-size:11px; margin-left:6px;">${hasVideo ? '영상' : '사진'}</span>` : ''}
                 </div>
                 <div style="display:flex; gap:6px; align-items:center; flex:0 0 auto;">
                     <button class="btn btn-bookmark bm-btn ${isBookmarked ? 'on' : ''}" data-id="${t.id_str}" style="padding:2px 10px; font-size:12px;" onclick="toggleBookmark('${t.id_str}', event)">
@@ -2651,8 +2859,8 @@
             </div>
             <div class="tweet-text">${text}</div>
             ${rtTruncated ? (origId
-                ? '<div class="rt-full" style="margin-top:8px;"><button class="btn btn-secondary rt-full-btn" style="padding:4px 10px; font-size:12px;">📖 전체 글 불러오기</button></div>'
-                : `<div class="video-msg">✂️ 아카이브에 잘려서 저장된 글이고 원트 번호가 없어서, 여기선 전체를 볼 수 없어요. ${rtSearchUrl ? `<a ${extAttrs(rtSearchUrl)} onclick="event.stopPropagation();" style="color:#1d9bf0; font-weight:bold;">[🔎 트위터에서 원트 찾기]</a>` : ''}</div>`) : ''}
+                ? '<div class="rt-full" style="margin-top:8px;"><button class="btn btn-secondary rt-full-btn" style="padding:4px 10px; font-size:12px;">전체 글 불러오기</button></div>'
+                : `<div class="video-msg">아카이브에 잘려서 저장된 글이고 원트 번호가 없어서, 여기선 전체를 볼 수 없어요. ${rtSearchUrl ? `<a ${extAttrs(rtSearchUrl)} onclick="event.stopPropagation();" style="color:#1d9bf0; font-weight:bold;">[트위터에서 원트 찾기]</a>` : ''}</div>`) : ''}
             ${(isRT(t) && !origId) ? '<div class="rt-link-row"><input type="text" class="rt-link-input" placeholder="원트 트윗 주소 붙여넣기"><button class="btn rt-link-save">저장</button></div>' : ''}
             ${mediaHtml}
             ${quoteBoxesHtml}
@@ -2670,16 +2878,28 @@
 
         card.querySelectorAll('.local-img').forEach(img => {
             const src = mediaList[Number(img.dataset.mi)].media_url_https;
+            if (src.startsWith('local:')) {
+                imgObjectUrl(src.slice(6)).then(u => {
+                    if (u) { img.src = u; img.onclick = e => { e.stopPropagation(); openLocalImage(u); }; }
+                    else {
+                        const note = document.createElement('div');
+                        note.className = 'video-msg';
+                        note.textContent = '이 기기에 사진 파일이 없어요. 설정/파일 탭의 "북마크 사진 옮기기"에서 사진 ZIP을 불러오면 보여요.';
+                        img.replaceWith(note);
+                    }
+                });
+                return;
+            }
             img.src = src;
             img.onclick = e => { e.stopPropagation(); openLocalImage(src); };
         });
         const menu = document.createElement('div');
         menu.className = 'card-menu';
         menu.innerHTML =
-            (t.manual ? '' : `<a class="menu-item" ${extAttrs(linkUrl)} onclick="event.stopPropagation();">${linkLabel.startsWith('🔎') ? '' : '🔗 '}${esc(linkLabel)}</a>`) +
-            `<button class="menu-item edit-btn">✏️ 수정</button>` +
-            `<button class="menu-item acct-rename-btn">👤 계정 이름 바꾸기</button>` +
-            `<button class="menu-item acct-avatar-btn">🖼 계정 프로필 사진</button>`;
+            (t.manual ? '' : `<a class="menu-item" ${extAttrs(linkUrl)} onclick="event.stopPropagation();">${esc(linkLabel)}</a>`) +
+            `<button class="menu-item edit-btn">수정</button>` +
+            `<button class="menu-item acct-rename-btn">계정 이름 바꾸기</button>` +
+            `<button class="menu-item acct-avatar-btn">계정 프로필 사진</button>`;
         card.appendChild(menu);
         const moreBtn = card.querySelector('.more-btn');
         moreBtn.onclick = e => { e.stopPropagation(); openCardMenu(moreBtn, menu); };
@@ -2718,10 +2938,10 @@
             const valid = d => d && d.text && !/^RT @/.test(d.text) && (!rtHandle || (d.handle || '').toLowerCase() === rtHandle);
             rtBtn.onclick = e => {
                 e.stopPropagation();
-                rtBtn.disabled = true; rtBtn.innerText = '⏳ 불러오는 중...';
+                rtBtn.disabled = true; rtBtn.innerText = '불러오는 중...';
                 fetchQuoteData(origId, 'i', false).then(r => {
                     if (r.status === 'ok' && valid(r.data)) showFull(r.data);
-                    else rtBtn.parentNode.innerHTML = `<span class="video-msg">⚠️ 전체 글을 가져오지 못했어요. <a ${extAttrs(twitterUrl)} onclick="event.stopPropagation();" style="color:#1d9bf0; font-weight:bold;">[트위터 원문]</a>에서 확인해 주세요.</span>`;
+                    else rtBtn.parentNode.innerHTML = `<span class="video-msg">전체 글을 가져오지 못했어요. <a ${extAttrs(twitterUrl)} onclick="event.stopPropagation();" style="color:#1d9bf0; font-weight:bold;">[트위터 원문]</a>에서 확인해 주세요.</span>`;
                 });
             };
         }
