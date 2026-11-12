@@ -289,8 +289,9 @@
 
     <div id="tab-data" class="section-box" style="display:none;">
         <h4>트윗 파일 추가</h4>
-        <div class="small-note" style="margin:0 0 4px;">이번에 올리는 파일의 <b>계정 아이디</b> (비우면 파일 이름을 써요. 이미 올린 트윗도 이 이름으로 바뀌어요)</div>
-        <input type="text" id="importAccountName" placeholder="예: myid">
+        <div class="small-note" style="margin:0 0 4px;">이번에 올리는 파일의 <b>계정 아이디</b> (비우면 파일 이름을 써서 새 계정이 만들어져요. <b>같은 계정이면 기존 이름을 골라 넣으세요</b>. 이미 올린 트윗도 이 이름으로 바뀌어요)</div>
+        <input type="text" id="importAccountName" placeholder="예: myid" list="acctDatalist" autocomplete="off">
+        <datalist id="acctDatalist"></datalist>
         <div id="dropZone" class="drop-zone">
             <div>트위터 아카이브의 <b>tweets.js</b> 파일을 여기로 끌어다 놓으세요</div>
             <div class="small-note">폰에서는 아래 버튼으로 선택하세요 · 파일이 여러 개면 한꺼번에 선택해도 돼요</div>
@@ -2913,6 +2914,16 @@
         if (!name || name === old) return;
         const exists = accountCounts().some(([a]) => a === name);
         if (exists && !confirm(`'${name}' 계정이 이미 있어요. 두 계정을 합칠까요?`)) return;
+        doAccountRename(old, name);
+    }
+    // 계정 합치기: old 계정의 트윗을 모두 target 계정으로 옮겨요
+    function mergeAccount(old, target) {
+        if (!target || target === old) return;
+        const n = allTweets.filter(t => accountOf(t) === old).length;
+        if (!confirm(`'${old}' 계정의 트윗 ${n}개를 '${target}' 계정으로 합칠까요?\n('${old}' 계정은 없어지고, 되돌릴 수 없어요)`)) { renderAccountManager(); return; }
+        doAccountRename(old, target);
+    }
+    function doAccountRename(old, name) {
         const patches = [];
         rawById.forEach(t => {
             if (accountOf(t) === old) { patches.push({ id_str: t.id_str, account: name, _patch: true }); t.account = name; }
@@ -2935,7 +2946,15 @@
             `<div class="acct-row">${avatarHtml(a)}<div class="acct-name"><b>${esc(a)}</b> <span class="cat-label">${n}개</span></div>` +
             `<button class="btn btn-secondary" data-i="${i}" data-act="rename">이름 변경</button>` +
             `<button class="btn btn-secondary" data-i="${i}" data-act="avatar">사진</button>` +
-            (accountAvatars[a] ? `<button class="btn btn-secondary" data-i="${i}" data-act="rmavatar">사진 삭제</button>` : '') + `</div>`).join('') || '<div class="small-note">저장된 트윗이 없어요.</div>';
+            (accountAvatars[a] ? `<button class="btn btn-secondary" data-i="${i}" data-act="rmavatar">사진 삭제</button>` : '') +
+            (list.length > 1 ? `<select data-i="${i}" data-act="merge" style="width:auto; max-width:140px; margin:0;"><option value="">다른 계정에 합치기…</option>${list.filter(([x]) => x !== a).map(([x]) => `<option value="${esc(x)}">${esc(x)}</option>`).join('')}</select>` : '') + `</div>`).join('') || '<div class="small-note">저장된 트윗이 없어요.</div>';
+        const dl = $('acctDatalist');
+        if (dl) dl.innerHTML = list.map(([a]) => `<option value="${esc(a)}">`).join('');
+        box.onchange = e => {
+            const sel = e.target.closest('select[data-act="merge"]');
+            if (!sel || !sel.value) return;
+            mergeAccount(list[Number(sel.dataset.i)][0], sel.value);
+        };
         box.onclick = e => {
             const b = e.target.closest('button[data-act]');
             if (!b) return;
