@@ -330,6 +330,12 @@
         <div id="backupMsg" class="small-note" style="margin-top:8px;"></div>
         <hr style="border-color:var(--line); margin:15px 0;">
 
+        <h4>사진이 링크로만 보이는 트윗</h4>
+        <p class="small-note">RT나 내 트윗 중 사진이 안 나오고 글 끝에 t.co 링크만 보이는 것을, 트위터에서 사진 주소를 다시 불러와 채워요. 사진 파일은 저장하지 않고 주소만 저장하니 저장 공간은 거의 안 써요.</p>
+        <button class="btn btn-secondary" style="width:100%;" onclick="fillMissingPhotos()">사진 안 보이는 트윗 사진 불러오기</button>
+        <div id="photoFillMsg" class="small-note" style="margin-top:6px;"></div>
+        <hr style="border-color:var(--line); margin:15px 0;">
+
         <h4>공계 멘션 원글 묶기</h4>
         <p class="small-note">공계(공식 계정)에 보낸 멘션의 원래 글을 트위터에서 불러와 "북마크" 계정 트윗으로 저장하고, 내 멘션과 타래로 묶어서 같이 보여줘요. 글이 저장되니 나중에 공계가 지워도 남아요.</p>
         <input type="text" id="gongyeHandles" placeholder="공계 아이디 (@ 없이, 쉼표로 여러 개)  예: medicos_et_02, gambling_for___" oninput="saveGongyeHandles()">
@@ -2784,6 +2790,45 @@
         }
         busy = false;
         fillBookmarkPhotos($('bookmarkMsg').innerText);      // 사진 주소가 없던 것은 이어서 인터넷에서 채워 봐요
+    }
+    // 사진이 글 끝 t.co 링크로만 남은 트윗(RT, 내 트윗 포함): 트위터에서 사진 주소를 다시 불러와 채우기 (사진 파일은 저장하지 않고 주소만 저장)
+    async function fillMissingPhotos() {
+        const msg = t => { $('photoFillMsg').innerText = t; };
+        if (busy) { alert('다른 작업이 진행 중이에요. 잠시 후 다시 시도해 주세요.'); return; }
+        const skip = loadJson('my_tweet_nophoto');
+        const list = allTweets.filter(t => !deletedSet.has(t.id_str) && !skip[t.id_str] && !getMediaList(t).length && /https?:\/\/t\.co\/\w+\s*$/.test(decodeEntities(t.full_text || '')));
+        if (!list.length) { msg('사진을 채울 트윗이 없어요. (사진이 없고 글 끝에 링크만 있는 트윗이 대상이에요)'); return; }
+        busy = true;
+        let done = 0, fail = 0, gone = 0;
+        const updated = [];
+        try {
+            await Promise.all(list.map(t => {
+                const fid = isRT(t) ? (rtOrigId(t) || t.id_str) : t.id_str;       // RT는 원트 번호가 있으면 그걸로 조회
+                return fetchQuoteData(fid, 'i', false).then(r => {
+                    done++; msg(`사진 불러오는 중… ${done} / ${list.length}`);
+                    if (r.status === 'error') { fail++; return; }
+                    if (r.status !== 'ok') { gone++; skip[t.id_str] = 1; return; }
+                    const d = r.data;
+                    const media = bmMedia(d.photos || []).concat((d.videos || []).map(v => ({ type: v.gif ? 'animated_gif' : 'video', url: v.thumb || '', video_url: v.url })));
+                    if (!media.length) { skip[t.id_str] = 1; return; }         // 사진 없는 글(일반 링크)이면 다음부터 건너뜀
+                    const nt = Object.assign({}, t);
+                    delete nt._lc;
+                    nt.extended_entities = { media: media.map((m, i) => {
+                        const o = { id_str: t.id_str + '_f' + i, type: m.type, media_url_https: m.url || '' };
+                        if (m.video_url) o.video_url = m.video_url;
+                        return o;
+                    }) };
+                    nt.full_text = String(t.full_text || '').replace(/\s*https?:\/\/t\.co\/\w+\s*$/, '');
+                    updated.push(nt);
+                });
+            }));
+            try { localStorage.setItem('my_tweet_nophoto', JSON.stringify(skip)); } catch (e) {}
+            updated.forEach(nt => rawById.set(nt.id_str, nt));
+            if (updated.length) persistTweetList(updated);
+            rebuildAll();
+            msg(`사진·영상 ${updated.length}개를 채웠어요. (확인한 ${list.length}개 중 사진 없는 글 ${list.length - updated.length - fail}개` + (fail ? ` · 연결 문제로 못 가져온 것 ${fail}개, 다시 누르면 이어서 해요` : '') + ')');
+        } catch (e) { msg('문제가 생겼어요: ' + (e && e.message ? e.message : e)); }
+        busy = false;
     }
     // 파일에 사진 주소가 없던 북마크: 트윗 번호로 인터넷에서 사진·영상을 다시 불러와 채우기
     async function fillBookmarkPhotos(prefix) {
