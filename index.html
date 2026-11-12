@@ -240,6 +240,7 @@
                 <option value="old">오래된순</option>
             </select>
         </div>
+        <select id="listAccountSelect" onchange="runListView()" style="margin-bottom:8px;"></select>
         <div style="display:flex; gap:8px; margin-bottom:8px;">
             <button class="btn" style="flex:1;" onclick="runListView()">검색</button>
             <button class="btn btn-secondary" id="listRandomBtn" style="flex:1;" onclick="randomFromCurrent()">랜덤 100개</button>
@@ -952,6 +953,7 @@
         $('listSearchInput').value = '';
         $('listDateInput').value = '';
         $('listCategorySelect').value = 'ALL';
+        $('listAccountSelect').value = 'ALL';
         $('bookmarkTools').style.display = (tabName === 'bookmark') ? '' : 'none';
         $('listTabNote').innerText = TAB_NOTES[tabName] || '';
         $('dupTools').style.display = (tabName === 'dup') ? '' : 'none';
@@ -1249,11 +1251,12 @@
     function runListView() {
         const terms = parseTerms($('listSearchInput').value);
         const cat = $('listCategorySelect').value;
-        const catOk = t => !cat || cat === 'ALL' || (tweetCategoryMap[t.id_str] || '미분류') === cat;
+        const acc = $('listAccountSelect').value;
+        const catOk = t => (!cat || cat === 'ALL' || (tweetCategoryMap[t.id_str] || '미분류') === cat) && (!acc || acc === 'ALL' || accountOf(t) === acc);
         currentTerms = terms;
         if (currentTab === 'dup') {
             let groups = getDupGroups().slice();
-            if (terms.length || (cat && cat !== 'ALL')) groups = groups.filter(g => g.some(t => catOk(t) && (!terms.length || matchTerms(t, terms))));
+            if (terms.length || (cat && cat !== 'ALL') || (acc && acc !== 'ALL')) groups = groups.filter(g => g.some(t => catOk(t) && (!terms.length || matchTerms(t, terms))));
             if (sortOrder === 'old') groups.reverse();
             setEntries(groups.map((g, i) => ({ items: g, prev: [], dup: true, num: i + 1 })), 'dup', groups.length);
             return;
@@ -1261,7 +1264,7 @@
         if (currentTab === 'thread') {
             let groups = getThreadInfo().groups.slice();
             // 타래 안의 트윗 중 (검색어 + 카테고리)에 맞는 게 하나라도 있으면 그 타래를 통째로 보여줌
-            if (terms.length || (cat && cat !== 'ALL')) groups = groups.filter(g => g.some(t => catOk(t) && (!terms.length || matchTerms(t, terms))));
+            if (terms.length || (cat && cat !== 'ALL') || (acc && acc !== 'ALL')) groups = groups.filter(g => g.some(t => catOk(t) && (!terms.length || matchTerms(t, terms))));
             if (sortOrder === 'old') groups.reverse();
             const entries = groups.map((g, i) => ({ items: g, prev: [], thread: true, num: i + 1 }));
             setEntries(entries, 'thread', groups.length);
@@ -1273,7 +1276,8 @@
     function getListResults() {
         const terms = parseTerms($('listSearchInput').value);
         const cat = $('listCategorySelect').value;
-        const catOk = t => !cat || cat === 'ALL' || (tweetCategoryMap[t.id_str] || '미분류') === cat;
+        const acc = $('listAccountSelect').value;
+        const catOk = t => (!cat || cat === 'ALL' || (tweetCategoryMap[t.id_str] || '미분류') === cat) && (!acc || acc === 'ALL' || accountOf(t) === acc);
         currentTerms = terms;
         let base = allTweets;
         if (currentTab === 'rt') base = base.filter(t => isRT(t));
@@ -2054,14 +2058,16 @@
         return Object.keys(c).sort((a, b) => c[b] - c[a]).map(a => [a, c[a]]);
     }
     function updateAccountSelects() {
-        const el = $('searchAccountSelect');
-        if (!el) return;
         const list = accountCounts();
-        const keep = el.value;
-        el.innerHTML = `<option value="ALL">전체 계정 (${allTweets.length})</option>` +
-            list.map(([a, n]) => `<option value="${esc(a)}">${esc(a)} (${n})</option>`).join('');
-        el.value = keep;
-        if (el.value !== keep) el.value = 'ALL';
+        ['searchAccountSelect', 'listAccountSelect'].forEach(id => {
+            const el = $(id);
+            if (!el) return;
+            const keep = el.value;
+            el.innerHTML = `<option value="ALL">전체 계정 (${allTweets.length})</option>` +
+                list.map(([a, n]) => `<option value="${esc(a)}">${esc(a)} (${n})</option>`).join('');
+            el.value = keep;
+            if (el.value !== keep) el.value = 'ALL';
+        });
     }
 
     /* ---------- 트윗 직접 추가 ---------- */
@@ -2947,7 +2953,7 @@
             `<button class="btn btn-secondary" data-i="${i}" data-act="rename">이름 변경</button>` +
             `<button class="btn btn-secondary" data-i="${i}" data-act="avatar">사진</button>` +
             (accountAvatars[a] ? `<button class="btn btn-secondary" data-i="${i}" data-act="rmavatar">사진 삭제</button>` : '') +
-            (list.length > 1 ? `<select data-i="${i}" data-act="merge" style="width:auto; max-width:140px; margin:0;"><option value="">다른 계정에 합치기…</option>${list.filter(([x]) => x !== a).map(([x]) => `<option value="${esc(x)}">${esc(x)}</option>`).join('')}</select>` : '') + `</div>`).join('') || '<div class="small-note">저장된 트윗이 없어요.</div>';
+            (list.length > 1 ? `<label class="btn btn-secondary" style="position:relative; overflow:hidden; display:inline-block;">합치기<select data-i="${i}" data-act="merge" title="이 계정을 다른 계정에 합치기" style="position:absolute; inset:0; width:100%; height:100%; margin:0; padding:0; opacity:0; cursor:pointer; font-size:16px;"><option value="">합칠 계정 선택…</option>${list.filter(([x]) => x !== a).map(([x]) => `<option value="${esc(x)}">${esc(x)} 계정으로</option>`).join('')}</select></label>` : '') + `</div>`).join('') || '<div class="small-note">저장된 트윗이 없어요.</div>';
         const dl = $('acctDatalist');
         if (dl) dl.innerHTML = list.map(([a]) => `<option value="${esc(a)}">`).join('');
         box.onchange = e => {
