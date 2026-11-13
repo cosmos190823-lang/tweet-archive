@@ -333,7 +333,7 @@
         <h4>사진이 링크로만 보이는 트윗</h4>
         <p class="small-note">RT나 내 트윗 중 사진이 안 나오고 글 끝에 t.co 링크만 보이는 것을, 트위터에서 사진 주소를 다시 불러와 채워요. 사진 파일은 저장하지 않고 주소만 저장하니 저장 공간은 거의 안 써요.</p>
         <button class="btn btn-secondary" style="width:100%;" onclick="fillMissingPhotos()">사진 안 보이는 트윗 사진 불러오기</button>
-        <div id="photoFillMsg" class="small-note" style="margin-top:6px;"></div>
+        <div id="photoFillMsg" class="small-note" style="margin-top:6px; white-space:pre-line;"></div>
         <hr style="border-color:var(--line); margin:15px 0;">
 
         <h4>공계 멘션 원글 묶기</h4>
@@ -2791,26 +2791,41 @@
         busy = false;
         fillBookmarkPhotos($('bookmarkMsg').innerText);      // 사진 주소가 없던 것은 이어서 인터넷에서 채워 봐요
     }
+    // 글 끝의 t.co 링크가 가리키는 "사진 주인 트윗" 번호 (RT면 원트 번호). 없으면 ''
+    function mediaOwnerIdOf(t) {
+        const text = decodeEntities(t.full_text || '');
+        const tail = (text.match(/https?:\/\/t\.co\/\w+\s*$/) || [''])[0].trim();
+        const urls = (t.entities && t.entities.urls) || [];
+        let found = '';
+        urls.forEach(u => {
+            const m = String(u.expanded_url || '').match(/\/status\/(\d+)\/(?:photo|video)\/\d+/);
+            if (m && (!found || (tail && u.url === tail))) found = m[1];
+        });
+        return found;
+    }
     // 사진이 글 끝 t.co 링크로만 남은 트윗(RT, 내 트윗 포함): 트위터에서 사진 주소를 다시 불러와 채우기 (사진 파일은 저장하지 않고 주소만 저장)
     async function fillMissingPhotos() {
         const msg = t => { $('photoFillMsg').innerText = t; };
         if (busy) { alert('다른 작업이 진행 중이에요. 잠시 후 다시 시도해 주세요.'); return; }
-        const skip = loadJson('my_tweet_nophoto');
+        const skip = loadJson('my_tweet_nophoto2');
         const list = allTweets.filter(t => !deletedSet.has(t.id_str) && !skip[t.id_str] && !getMediaList(t).length && /https?:\/\/t\.co\/\w+\s*$/.test(decodeEntities(t.full_text || '')));
         if (!list.length) { msg('사진을 채울 트윗이 없어요. (사진이 없고 글 끝에 링크만 있는 트윗이 대상이에요)'); return; }
         busy = true;
-        let done = 0, fail = 0, gone = 0;
+        let done = 0, fail = 0, gone = 0, noPhoto = 0, noId = 0;
         const updated = [];
         try {
             await Promise.all(list.map(t => {
-                const fid = isRT(t) ? (rtOrigId(t) || t.id_str) : t.id_str;       // RT는 원트 번호가 있으면 그걸로 조회
+                const owner = mediaOwnerIdOf(t);
+                const rt = isRT(t);
+                const known = owner || (rt ? rtOrigId(t) : t.id_str);       // 조회할 번호를 확실히 아는 경우
+                const fid = known || t.id_str;                              // RT인데 원트 번호를 모르면 RT 번호로 한 번 시도
                 return fetchQuoteData(fid, 'i', false).then(r => {
                     done++; msg(`사진 불러오는 중… ${done} / ${list.length}`);
                     if (r.status === 'error') { fail++; return; }
-                    if (r.status !== 'ok') { gone++; skip[t.id_str] = 1; return; }
+                    if (r.status !== 'ok') { gone++; if (known) skip[t.id_str] = 1; return; }
                     const d = r.data;
                     const media = bmMedia(d.photos || []).concat((d.videos || []).map(v => ({ type: v.gif ? 'animated_gif' : 'video', url: v.thumb || '', video_url: v.url })));
-                    if (!media.length) { skip[t.id_str] = 1; return; }         // 사진 없는 글(일반 링크)이면 다음부터 건너뜀
+                    if (!media.length) { if (known) { skip[t.id_str] = 1; noPhoto++; } else noId++; return; }     // 번호를 확실히 알 때만 "사진 없음"으로 기록
                     const nt = Object.assign({}, t);
                     delete nt._lc;
                     nt.extended_entities = { media: media.map((m, i) => {
@@ -2822,11 +2837,15 @@
                     updated.push(nt);
                 });
             }));
-            try { localStorage.setItem('my_tweet_nophoto', JSON.stringify(skip)); } catch (e) {}
+            try { localStorage.setItem('my_tweet_nophoto2', JSON.stringify(skip)); } catch (e) {}
             updated.forEach(nt => rawById.set(nt.id_str, nt));
             if (updated.length) persistTweetList(updated);
             rebuildAll();
-            msg(`사진·영상 ${updated.length}개를 채웠어요. (확인한 ${list.length}개 중 사진 없는 글 ${list.length - updated.length - fail}개` + (fail ? ` · 연결 문제로 못 가져온 것 ${fail}개, 다시 누르면 이어서 해요` : '') + ')');
+            msg(`확인한 ${list.length}개 중 사진·영상을 채운 것 ${updated.length}개.` +
+                (noPhoto ? `\n사진이 없는 일반 링크 글 ${noPhoto}개 (다음부터 건너뛰어요)` : '') +
+                (gone ? `\n삭제되었거나 비공개라 못 가져온 것 ${gone}개` : '') +
+                (noId ? `\n원트 번호를 몰라서 못 채운 RT ${noId}개 (카드의 원트 주소 붙여넣기로 직접 채울 수 있어요)` : '') +
+                (fail ? `\n연결 문제로 못 가져온 것 ${fail}개 (다시 누르면 이어서 해요)` : ''));
         } catch (e) { msg('문제가 생겼어요: ' + (e && e.message ? e.message : e)); }
         busy = false;
     }
